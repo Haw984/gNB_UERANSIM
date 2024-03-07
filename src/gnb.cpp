@@ -51,6 +51,14 @@ static nr::gnb::GnbConfig *ReadConfigYaml()
     result->linkIp = yaml::GetIpAddress(config, "linkIp");
     result->ngapIp = yaml::GetIpAddress(config, "ngapIp");
     result->gtpIp = yaml::GetIpAddress(config, "gtpIp");
+   
+    if (yaml::HasField(config,"phyLocation"))
+	{
+	int x = config["phyLocation"]["x"].as<int>();
+	int y = config["phyLocation"]["y"].as<int>();
+	int z = config["phyLocation"]["z"].as<int>();
+	result->phyLocation= Vector3(x,y,z);
+	}
 
     if (yaml::HasField(config, "gtpAdvertiseIp"))
         result->gtpAdvertiseIp = yaml::GetIpAddress(config, "gtpAdvertiseIp");

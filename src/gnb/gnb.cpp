@@ -13,7 +13,7 @@
 #include "rls/task.hpp"
 #include "rrc/task.hpp"
 #include "sctp/task.hpp"
-
+#include <iostream>
 #include <lib/app/cli_base.hpp>
 
 namespace nr::gnb

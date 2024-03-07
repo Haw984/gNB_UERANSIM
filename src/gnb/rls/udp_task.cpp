@@ -18,6 +18,7 @@
 #include <utils/constants.hpp>
 #include <utils/libc_error.hpp>
 
+#include <iostream>
 static constexpr const int BUFFER_SIZE = 16384;
 
 static constexpr const int LOOP_PERIOD = 1000;
@@ -35,6 +36,11 @@ static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
     int distance = static_cast<int>(std::sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ));
     if (distance == 0)
         return -1; // 0 may be confusing for people
+    std::cout<<"rls/udp_task.cpp/:uepos_x:"<<uePos.x<<std::endl;
+    std::cout<<"uepos_y:"<< uePos.y<<std::endl;
+    std::cout<<"uepos_z:"<< uePos.z<<std::endl;
+    std::cout<<"gnbpos_x:"<< myPos.x<<std::endl;
+    std::cout<<"gnbpos_x:"<< myPos.y<<std::endl;
     return -distance;
 }
 
