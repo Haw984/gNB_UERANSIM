@@ -12,6 +12,7 @@
 #include <gnb/rrc/task.hpp>
 #include <utils/common.hpp>
 #include <utils/random.hpp>
+
 namespace nr::gnb
 {
 
@@ -19,7 +20,7 @@ GnbRlsTask::GnbRlsTask(TaskBase *base) : m_base{base}
 {
     m_logger = m_base->logBase->makeUniqueLogger("rls");
     m_sti = Random::Mixed(base->config->name).nextUL();
-    m_udpTask = new RlsUdpTask(base, m_sti, base->config->phyLocation);
+    m_udpTask = new RlsUdpTask(base, m_sti, base->config->phyLocation, base->config->wifi, base->config->sessionIp, base->config->nextHop, base->config->interface);
     m_ctlTask = new RlsControlTask(base, m_sti);
 
     m_udpTask->initialize(m_ctlTask);
@@ -48,6 +49,11 @@ void GnbRlsTask::onLoop()
             auto m = std::make_unique<NmGnbRlsToRrc>(NmGnbRlsToRrc::SIGNAL_DETECTED);
             m->ueId = w.ueId;
             m_base->rrcTask->push(std::move(m));
+	    /*if (NtsTask::flag == 0) {
+                m_logger->info("Wifi connection successfully established.");
+            } else {
+                m_logger->info("Wifi connection failed to establish.");
+            }*/
             break;
         }
         case NmGnbRlsToRls::SIGNAL_LOST: {

@@ -126,6 +126,7 @@ class NtsTask
 
   public:
     NtsTask() = default;
+    //static bool flag;
 
     virtual ~NtsTask() = default;
 

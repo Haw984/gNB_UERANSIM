@@ -12,12 +12,13 @@
 #include <cstdint>
 #include <cstring>
 #include <set>
+#include <unistd.h>
 
 #include <gnb/nts.hpp>
 #include <utils/common.hpp>
 #include <utils/constants.hpp>
 #include <utils/libc_error.hpp>
-
+#include <string>
 #include <iostream>
 static constexpr const int BUFFER_SIZE = 16384;
 
@@ -26,6 +27,7 @@ static constexpr const int RECEIVE_TIMEOUT = 200;
 static constexpr const int HEARTBEAT_THRESHOLD = 2000; // (LOOP_PERIOD + RECEIVE_TIMEOUT)'dan büyük olmalı
 
 static constexpr const int MIN_ALLOWED_DBM = -120;
+//bool NtsTask::flag = false;
 
 static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
 {
@@ -36,19 +38,49 @@ static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
     int distance = static_cast<int>(std::sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ));
     if (distance == 0)
         return -1; // 0 may be confusing for people
-    std::cout<<"rls/udp_task.cpp/:uepos_x:"<<uePos.x<<std::endl;
-    std::cout<<"uepos_y:"<< uePos.y<<std::endl;
-    std::cout<<"uepos_z:"<< uePos.z<<std::endl;
-    std::cout<<"gnbpos_x:"<< myPos.x<<std::endl;
-    std::cout<<"gnbpos_x:"<< myPos.y<<std::endl;
     return -distance;
+}
+
+std::string build_command(std::string command, std::string target, std::string next_hop, std::string iface= nullptr) {
+  //std::string cmd = command;
+  command += " -net ";
+  command += target;
+  command.append(" gw ");
+  command.append(next_hop);
+  if (!iface.empty()) {
+    command.append(" dev ");
+    command.append(iface);
+  }
+  return command;
+}
+
+int execute_command(const std::string& cmd) {
+  const char* command = cmd.c_str();
+  int flag = system(command);
+  if (flag) {
+    // Child process
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
+int add_static_route(std::string target_network, std::string next_hop, std::string interface_name) {
+  std::string cmd = build_command("route add", target_network, next_hop, interface_name);
+  return execute_command(cmd);
+}
+
+int delete_static_route(std::string target_network, std::string next_hop, std::string interface_name) {
+  std::string cmd = build_command("route del", target_network, next_hop, interface_name);
+  return execute_command(cmd);
 }
 
 namespace nr::gnb
 {
 
-RlsUdpTask::RlsUdpTask(TaskBase *base, uint64_t sti, Vector3 phyLocation)
+RlsUdpTask::RlsUdpTask(TaskBase *base, uint64_t sti, Vector3 phyLocation, bool wifi, std::string sessionIp, std::string nextHop, std::string interface)
     : m_server{}, m_ctlTask{}, m_sti{sti}, m_phyLocation{phyLocation}, m_lastLoop{}, m_stiToUe{}, m_ueMap{}, m_newIdCounter{}
+    , m_wifi{wifi}, m_sessionIp{sessionIp}, m_nextHop{nextHop},m_interface{interface}
 {
     m_logger = base->logBase->makeUniqueLogger("rls-udp");
 
@@ -79,7 +111,7 @@ void RlsUdpTask::onLoop()
 
     uint8_t buffer[BUFFER_SIZE];
     InetAddress peerAddress;
-
+    std::string address;
     int size = m_server->Receive(buffer, BUFFER_SIZE, RECEIVE_TIMEOUT, peerAddress);
     if (size > 0)
     {
@@ -104,9 +136,25 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
         if (dbm < MIN_ALLOWED_DBM)
         {
             // if the simulated signal strength is such low, then ignore this message
+	    if(m_wifi == true)
+	    {
+		  int status = delete_static_route(m_sessionIp, m_nextHop, m_interface);
+	    }
+	    //NtsTask::flag=false;
             return;
         }
-
+	
+	else if (dbm > MIN_ALLOWED_DBM && m_wifi == true)
+	{
+	    //Todo forward data from UE 
+	    int status = add_static_route(m_sessionIp, m_nextHop, m_interface);
+	    //NtsTask::flag = true;
+	    if (status == 0) {
+		m_logger->info("Wifi connection successfully established.");
+	    } else {
+    	      	m_logger->info("Wifi connection failed to establish.");
+  	    }
+	}
         if (m_stiToUe.count(msg->sti))
         {
             int ueId = m_stiToUe[msg->sti];
