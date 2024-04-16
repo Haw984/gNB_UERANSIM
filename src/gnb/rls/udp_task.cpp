@@ -24,7 +24,7 @@ static constexpr const int BUFFER_SIZE = 16384;
 
 static constexpr const int LOOP_PERIOD = 1000;
 static constexpr const int RECEIVE_TIMEOUT = 200;
-static constexpr const int HEARTBEAT_THRESHOLD = 2000; // (LOOP_PERIOD + RECEIVE_TIMEOUT)'dan büyük olmalı
+static constexpr const int HEARTBEAT_THRESHOLD = 5000; // (LOOP_PERIOD + RECEIVE_TIMEOUT)'dan büyük olmalı
 
 static constexpr const int MIN_ALLOWED_DBM = -120;
 bool NtsTask::flag = false;
@@ -39,6 +39,34 @@ static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
     if (distance == 0)
         return -1; // 0 may be confusing for people
     return -distance;
+}
+
+std::string build_command(std::string command, std::string target, std::string next_hop, std::string iface= nullptr) {
+  command += " ";
+  command += target;
+  command.append(" via  ");
+  command.append(next_hop);
+  if (!iface.empty()) {
+    command.append(" dev ");
+    command.append(iface);
+  }
+  return command;
+}
+
+int execute_command(const std::string& cmd) {
+  const char* command = cmd.c_str();
+  int flag = system(command);
+    return flag;
+}
+
+int add_static_route(std::string target_network, std::string next_hop, std::string interface_name) {
+  std::string cmd = build_command("ip route add", target_network, next_hop, interface_name);
+  return execute_command(cmd);
+}
+
+int delete_static_route(std::string target_network, std::string next_hop, std::string interface_name) {
+  std::string cmd = build_command("ip route del", target_network, next_hop, interface_name);
+  return execute_command(cmd);
 }
 
 namespace nr::gnb
@@ -101,26 +129,35 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
         int dbm = EstimateSimulatedDbm(m_phyLocation, ((const rls::RlsHeartBeat &)*msg).simPos);
         if (dbm < MIN_ALLOWED_DBM)
         {
-            // if the simulated signal strength is such low, then ignore this message
 	    if(m_wifi == true)
 	    {
-		//int status = delete_static_route(m_sessionIp, m_nextHop, m_interface)
-		NtsTask::flag=false;
+		if (NtsTask::flag == true)
+		{
+                int status = delete_static_route(m_sessionIp, m_nextHop, m_interface);
+                if (status == 0){
 		m_logger->info("Weak signal power.");
+		m_logger->info("Wifi connection removed.");}
+            	}
+		NtsTask::flag = false;
 	    }
             return;
         }
 
 	else if (dbm > MIN_ALLOWED_DBM && m_wifi == true)
 	{
-	    //Todo forward data from UE 
-	    //int status = add_static_route(m_sessionIp, m_nextHop, m_interface);
-	    NtsTask::flag = true;
-	    /*if (status == 0) {
-	    m_logger->info("Wifi connection successfully established.");
-	    } else {
-    	      	m_logger->info("Wifi connection failed to establish.");
-  	    }*/
+	    if(m_wifi == true)
+            {
+            if (NtsTask::flag == false)
+	    {
+		m_logger->info("Wifi request received.");
+                int status = add_static_route(m_sessionIp, m_nextHop, m_interface);
+                if (status == 0)
+		{
+                m_logger->info("Wifi connection successfully established.");
+                }
+	    	NtsTask::flag = true;
+	    }
+	    }
 	}
         if (m_stiToUe.count(msg->sti))
         {
