@@ -12,6 +12,38 @@
 #include <gnb/rrc/task.hpp>
 #include <utils/common.hpp>
 #include <utils/random.hpp>
+#include <iostream>
+#include <cstring> // for memset
+#include <unistd.h> // for system calls (fork, exec)
+
+std::string build_command(std::string command, std::string target, std::string next_hop, std::string iface= nullptr) {
+  //std::string cmd = command;
+  command += " ";
+  command += target;
+  command.append(" via  ");
+  command.append(next_hop);
+  if (!iface.empty()) {
+    command.append(" dev ");
+    command.append(iface);
+  }
+  return command;
+}
+
+int execute_command(const std::string& cmd) {
+  const char* command = cmd.c_str();
+  int flag = system(command);
+    return flag;
+}
+
+int add_static_route(std::string target_network, std::string next_hop, std::string interface_name) {
+  std::string cmd = build_command("ip route add", target_network, next_hop, interface_name);
+  return execute_command(cmd);
+}
+
+int delete_static_route(std::string target_network, std::string next_hop, std::string interface_name) {
+  std::string cmd = build_command("ip route del", target_network, next_hop, interface_name);
+  return execute_command(cmd);
+}
 
 namespace nr::gnb
 {
@@ -49,15 +81,26 @@ void GnbRlsTask::onLoop()
             auto m = std::make_unique<NmGnbRlsToRrc>(NmGnbRlsToRrc::SIGNAL_DETECTED);
             m->ueId = w.ueId;
             m_base->rrcTask->push(std::move(m));
-	    /*if (NtsTask::flag == 0) {
-                m_logger->info("Wifi connection successfully established.");
+	    if(m_base->config->wifi == true){
+	    m_logger->info("Wifi request received.");
+	    if (NtsTask::flag == true) {
+                status = add_static_route(m_base->config->sessionIp, m_base->config->nextHop, m_base->config->interface);
+		if (status == 0) {
+		m_logger->info("Wifi connection successfully established.");
+	    	}
             } else {
+		status = delete_static_route(m_base->config->sessionIp, m_base->config->nextHop, m_base->config->interface);
                 m_logger->info("Wifi connection failed to establish.");
-            }*/
+            }
+	    }
             break;
         }
         case NmGnbRlsToRls::SIGNAL_LOST: {
             m_logger->debug("UE[%d] signal lost", w.ueId);
+	    if (m_base->config->wifi == true && NtsTask::flag == false){
+	    status = delete_static_route(m_base->config->sessionIp, m_base->config->nextHop, m_base->config->interface);
+	    m_logger->info("Wifi connection dropped.");
+	    }
             break;
         }
         case NmGnbRlsToRls::UPLINK_DATA: {

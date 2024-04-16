@@ -74,9 +74,9 @@ static nr::gnb::GnbConfig *ReadConfigYaml()
     {
         result->nextHop = yaml::GetString(config,"nextHop");
     }
-    if (yaml::HasField(config, "nextHopIface"))
+    if (yaml::HasField(config, "nextHopInterface"))
     {
-        result->interface = yaml::GetString(config,"nextHopIface");
+        result->interface = yaml::GetString(config,"nextHopInterface");
     }
 
     result->ignoreStreamIds = yaml::GetBool(config, "ignoreStreamIds");

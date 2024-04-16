@@ -42,6 +42,7 @@ class GnbRlsTask : public NtsTask
   public:
     explicit GnbRlsTask(TaskBase *base);
     ~GnbRlsTask() override = default;
+    int status;
 
   protected:
     void onStart() override;
