@@ -23,7 +23,7 @@ GnbRlsTask::GnbRlsTask(TaskBase *base) : m_base{base}
 {
     m_logger = m_base->logBase->makeUniqueLogger("rls");
     m_sti = Random::Mixed(base->config->name).nextUL();
-    m_udpTask = new RlsUdpTask(base, m_sti, base->config->phyLocation, base->config->wifi, base->config->sessionIp, base->config->nextHop, base->config->interface);
+    m_udpTask = new RlsUdpTask(base, m_sti, base->config->phyLocation, base->config->wifi, base->config->ueInterface, base->config->interface);
     m_ctlTask = new RlsControlTask(base, m_sti);
 
     m_udpTask->initialize(m_ctlTask);

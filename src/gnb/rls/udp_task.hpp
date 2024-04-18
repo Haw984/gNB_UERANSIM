@@ -41,12 +41,11 @@ class RlsUdpTask : public NtsTask
     std::unordered_map<int, UeInfo> m_ueMap;
     int m_newIdCounter;
     bool m_wifi;
-    std::string m_sessionIp{};
-    std::string m_nextHop{};
+    std::string m_ueInterface{};
     std::string m_interface{};
 
   public:
-    explicit RlsUdpTask(TaskBase *base, uint64_t sti, Vector3 phyLocation, bool m_wifi, std::string m_sessionIp, std::string m_nextHop,std::string m_interface);
+    explicit RlsUdpTask(TaskBase *base, uint64_t sti, Vector3 phyLocation, bool m_wifi, std::string m_ueInterface, std::string m_interface);
     ~RlsUdpTask() override = default;
 
   protected:

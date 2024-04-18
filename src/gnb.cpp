@@ -66,13 +66,9 @@ static nr::gnb::GnbConfig *ReadConfigYaml()
     {
 	result->wifi = yaml::GetBool(config, "wifi");
     }
-    if (yaml::HasField(config, "sessionIp"))
+    if (yaml::HasField(config, "UeInterface"))
     {
-	result->sessionIp = yaml::GetString(config,"sessionIp");
-    }
-    if (yaml::HasField(config, "nextHop"))
-    {
-        result->nextHop = yaml::GetString(config,"nextHop");
+	result->ueInterface = yaml::GetString(config,"UeInterface");
     }
     if (yaml::HasField(config, "nextHopInterface"))
     {

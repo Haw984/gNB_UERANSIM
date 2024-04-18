@@ -75,23 +75,18 @@ static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
 
 // Function to execute a command
 int execute_command(const std::string& command) {
+    std::cout<<command<<std::endl;
     return system(command.c_str());
 }
 
 // Function to build the command
-std::string build_command(const std::string& base_cmd, const std::string& target_network) {
-    return base_cmd + target_network + " -j DROP";
+std::string build_command(const std::string& base_cmd, const std::string& mid_cmd,  const std::string& target_network, const std::string& end_cmd) {
+    return base_cmd + mid_cmd + target_network + end_cmd;
 }
 
-// Function to add static route
-int add_static_route(const std::string& target_network) {
-    std::string cmd = build_command("sudo iptables -A FORWARD -s ", target_network);
-    return execute_command(cmd);
-}
-
-// Function to delete static route
-int delete_static_route(const std::string& target_network) {
-    std::string cmd = build_command("sudo iptables -D FORWARD -s ", target_network);
+// Function to add or delete route
+int route(const std::string& cmd_start, const std::string& cmd_mid, const std::string& target_network, const std::string& end_cmd) {
+    std::string cmd = build_command(cmd_start, cmd_mid, target_network, end_cmd);
     return execute_command(cmd);
 }
 
@@ -99,9 +94,9 @@ int delete_static_route(const std::string& target_network) {
 namespace nr::gnb
 {
 
-RlsUdpTask::RlsUdpTask(TaskBase *base, uint64_t sti, Vector3 phyLocation, bool wifi, std::string sessionIp, std::string nextHop, std::string interface)
+RlsUdpTask::RlsUdpTask(TaskBase *base, uint64_t sti, Vector3 phyLocation, bool wifi, std::string ueInterface, std::string interface)
     : m_server{}, m_ctlTask{}, m_sti{sti}, m_phyLocation{phyLocation}, m_lastLoop{}, m_stiToUe{}, m_ueMap{}, m_newIdCounter{}
-    , m_wifi{wifi}, m_sessionIp{sessionIp}, m_nextHop{nextHop},m_interface{interface}
+    , m_wifi{wifi}, m_ueInterface{ueInterface},m_interface{interface}
 {
     m_logger = base->logBase->makeUniqueLogger("rls-udp");
 
@@ -160,7 +155,10 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
 	    {
 		if (NtsTask::flag == true)
 		{
-                int status = delete_static_route(ipv4Address);
+                int status = route("iptables -D FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address," -j ACCEPT");
+                status = route("iptables -D FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j ACCEPT");
+		status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address, " -j DROP");
+		status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j DROP");
                 if (status == 0){
 		m_logger->info("Weak signal power.");
 		m_logger->info("Wifi connection removed.");}
@@ -176,13 +174,22 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
             {
             if (NtsTask::flag == false)
 	    {
+		if(m_interface == "" || m_ueInterface == "")
+		{
+		   m_logger->err("Interface not provided.");
+		   return;
+		}
+		else{
 		m_logger->info("Wifi request received.");
-                int status = add_static_route(ipv4Address);
+                int status = system(" iptables -F");
+		status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface + " -s ", ipv4Address, " -j ACCEPT");
+		status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface + " -s ", ipv4Address, " -j ACCEPT");
                 if (status == 0)
 		{
-                m_logger->info("Wifi connection successfully established.");
+                   m_logger->info("Wifi connection successfully established.");
                 }
 	    	NtsTask::flag = true;
+		}
 	    }
 	    }
 	}
