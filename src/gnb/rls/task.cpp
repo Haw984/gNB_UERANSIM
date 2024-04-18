@@ -58,10 +58,10 @@ void GnbRlsTask::onLoop()
         case NmGnbRlsToRls::SIGNAL_LOST: {
 	    if (m_base->config->wifi == true && NtsTask::flag == true && m_wifiCounter > 15){
 	    m_logger->debug("UE[%d] signal lost", w.ueId);
-	    int status = delete_static_route(m_base->config->sessionIp, m_base->config->nextHop, m_base->config->interface);
+	    /*int status = delete_static_route(m_base->config->sessionIp, m_base->config->nextHop, m_base->config->interface);
 	    if (status == 0){
 		m_logger->info("Wifi connection removed.");
-	    }
+	    }*/
 	    m_wifiCounter=0;
 	    }
 	    m_wifiCounter++;

@@ -29,6 +29,35 @@ static constexpr const int HEARTBEAT_THRESHOLD = 5000; // (LOOP_PERIOD + RECEIVE
 static constexpr const int MIN_ALLOWED_DBM = -120;
 bool NtsTask::flag = false;
 
+#include <arpa/inet.h>
+#include <cstring>
+#include <stdexcept> // For std::runtime_error
+
+std::string getIPv4AddressString(const InetAddress &inetAddress) {
+  if (inetAddress.getIpVersion() != 4) {
+    return ""; // Not an IPv4 address
+  }
+
+  // Check if getSockAddr returns a null pointer (potential error)
+  const sockaddr *addr = inetAddress.getSockAddr();
+  if (addr == nullptr) {
+    throw std::runtime_error("InetAddress object does not contain a valid address");
+  }
+
+  // Cast to const sockaddr_in* only if the IP version is 4
+  const sockaddr_in *sin = reinterpret_cast<const sockaddr_in *>(addr);
+
+  char ipString[INET_ADDRSTRLEN]; // Buffer to store string address
+  if (inet_ntop(AF_INET, &(sin->sin_addr), ipString, INET_ADDRSTRLEN) == nullptr) {
+    // Handle inet_ntop error (unlikely, but possible)
+    throw std::runtime_error("Error converting address to string");
+  }
+
+  return std::string(ipString);
+}
+
+
+
 static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
 {
     int deltaX = myPos.x - uePos.x;
@@ -41,33 +70,31 @@ static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
     return -distance;
 }
 
-std::string build_command(std::string command, std::string target, std::string next_hop, std::string iface= nullptr) {
-  command += " ";
-  command += target;
-  command.append(" via  ");
-  command.append(next_hop);
-  if (!iface.empty()) {
-    command.append(" dev ");
-    command.append(iface);
-  }
-  return command;
+#include <string>
+#include <cstdlib>
+
+// Function to execute a command
+int execute_command(const std::string& command) {
+    return system(command.c_str());
 }
 
-int execute_command(const std::string& cmd) {
-  const char* command = cmd.c_str();
-  int flag = system(command);
-    return flag;
+// Function to build the command
+std::string build_command(const std::string& base_cmd, const std::string& target_network) {
+    return base_cmd + target_network + " -j DROP";
 }
 
-int add_static_route(std::string target_network, std::string next_hop, std::string interface_name) {
-  std::string cmd = build_command("ip route add", target_network, next_hop, interface_name);
-  return execute_command(cmd);
+// Function to add static route
+int add_static_route(const std::string& target_network) {
+    std::string cmd = build_command("sudo iptables -A FORWARD -s ", target_network);
+    return execute_command(cmd);
 }
 
-int delete_static_route(std::string target_network, std::string next_hop, std::string interface_name) {
-  std::string cmd = build_command("ip route del", target_network, next_hop, interface_name);
-  return execute_command(cmd);
+// Function to delete static route
+int delete_static_route(const std::string& target_network) {
+    std::string cmd = build_command("sudo iptables -D FORWARD -s ", target_network);
+    return execute_command(cmd);
 }
+
 
 namespace nr::gnb
 {
@@ -105,7 +132,6 @@ void RlsUdpTask::onLoop()
 
     uint8_t buffer[BUFFER_SIZE];
     InetAddress peerAddress;
-    std::string address;
     int size = m_server->Receive(buffer, BUFFER_SIZE, RECEIVE_TIMEOUT, peerAddress);
     if (size > 0)
     {
@@ -127,13 +153,14 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
     if (msg->msgType == rls::EMessageType::HEARTBEAT)
     {
         int dbm = EstimateSimulatedDbm(m_phyLocation, ((const rls::RlsHeartBeat &)*msg).simPos);
+	std::string ipv4Address = getIPv4AddressString(addr);
         if (dbm < MIN_ALLOWED_DBM)
         {
 	    if(m_wifi == true)
 	    {
 		if (NtsTask::flag == true)
 		{
-                int status = delete_static_route(m_sessionIp, m_nextHop, m_interface);
+                int status = delete_static_route(ipv4Address);
                 if (status == 0){
 		m_logger->info("Weak signal power.");
 		m_logger->info("Wifi connection removed.");}
@@ -150,7 +177,7 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
             if (NtsTask::flag == false)
 	    {
 		m_logger->info("Wifi request received.");
-                int status = add_static_route(m_sessionIp, m_nextHop, m_interface);
+                int status = add_static_route(ipv4Address);
                 if (status == 0)
 		{
                 m_logger->info("Wifi connection successfully established.");

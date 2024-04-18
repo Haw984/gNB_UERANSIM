@@ -67,7 +67,6 @@ InetAddress::InetAddress(const std::string &address, uint16_t port) : storage{},
     hints.ai_canonname = nullptr;
     hints.ai_addr = nullptr;
     hints.ai_next = nullptr;
-
     struct addrinfo *result;
     int s = getaddrinfo(address.c_str(), std::to_string(port).c_str(), &hints, &result);
     if (s != 0)
