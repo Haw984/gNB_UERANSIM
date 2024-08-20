@@ -56,16 +56,26 @@ void GnbRlsTask::onLoop()
             break;
         }
         case NmGnbRlsToRls::SIGNAL_LOST: {
-	    if (m_base->config->wifi == true && NtsTask::flag == true && m_wifiCounter > 15){
-	    m_logger->debug("UE[%d] signal lost", w.ueId);
-	    /*int status = delete_static_route(m_base->config->sessionIp, m_base->config->nextHop, m_base->config->interface);
-	    if (status == 0){
-		m_logger->info("Wifi connection removed.");
-	    }*/
-	    m_wifiCounter=0;
-	    }
-	    m_wifiCounter++;
-            break;
+	    if (m_base->config->wifi == true)
+        {
+            if (NtsTask::flag == true && m_wifiCounter > 15)
+            {
+                /*int status = delete_static_route(m_base->config->sessionIp, m_base->config->nextHop, m_base->config->interface);
+                if (status == 0){
+                m_logger->info("Wifi connection removed.");
+                }*/
+                m_wifiCounter=0;
+            }
+            m_wifiCounter++;
+        }
+        else
+        {
+            auto m = std::make_unique<NmGnbRlsToRrc>(NmGnbRlsToRrc::SIGNAL_LOST);
+            m->ueId = w.ueId;
+            m_base->rrcTask->push(std::move(m));
+        }
+        m_logger->debug("UE[%d] signal lost", w.ueId);
+        break;
         }
         case NmGnbRlsToRls::UPLINK_DATA: {
             auto m = std::make_unique<NmGnbRlsToGtp>(NmGnbRlsToGtp::DATA_PDU_DELIVERY);

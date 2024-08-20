@@ -151,20 +151,38 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
 	std::string ipv4Address = getIPv4AddressString(addr);
         if (dbm < MIN_ALLOWED_DBM)
         {
-	    if(m_wifi == true)
-	    {
-		if (NtsTask::flag == true)
-		{
-                int status = route("iptables -D FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address," -j ACCEPT");
-                status = route("iptables -D FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j ACCEPT");
-		status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address, " -j DROP");
-		status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j DROP");
-                if (status == 0){
-		m_logger->info("Weak signal power.");
-		m_logger->info("Wifi connection removed.");}
-            	}
-		NtsTask::flag = false;
-	    }
+            if(m_wifi == true)
+            {
+                if (NtsTask::flag == true)
+                {
+                    int status = route("iptables -D FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address," -j ACCEPT");
+                    status = route("iptables -D FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j ACCEPT");
+                    status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address, " -j DROP");
+                    status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j DROP");
+                    if (status == 0){
+                    m_logger->info("Weak signal power.");
+                    m_logger->info("Wifi connection removed.");}
+                }
+                NtsTask::flag = false;
+            }
+            else
+            {
+                if (m_stiToUe.count(msg->sti))
+                {
+                    m_logger->info("Lost signal power (by Urwah)");
+                    int ueId = m_stiToUe[msg->sti];
+                    // Remove UE from tracking maps
+                    m_stiToUe.erase(msg->sti);
+                    m_ueMap.erase(ueId);
+
+                    //Notify that the signal is lost
+                    auto w= std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SIGNAL_LOST);
+                    w->ueId = ueId;
+                    //w->msg = std::move(msg);
+                    m_ctlTask->push(std::move(w));
+                    
+                }
+            }
             return;
         }
 

@@ -38,6 +38,7 @@ struct NmGnbRlsToRrc : NtsMessage
     {
         SIGNAL_DETECTED,
         UPLINK_RRC,
+	    SIGNAL_LOST,
     } present;
 
     // SIGNAL_DETECTED
@@ -190,7 +191,8 @@ struct NmGnbRrcToNgap : NtsMessage
     {
         INITIAL_NAS_DELIVERY,
         UPLINK_NAS_DELIVERY,
-        RADIO_LINK_FAILURE
+        RADIO_LINK_FAILURE,
+	SIGNAL_LOST
     } present;
 
     // INITIAL_NAS_DELIVERY
