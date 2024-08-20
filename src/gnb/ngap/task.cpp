@@ -12,7 +12,7 @@
 
 #include <gnb/app/task.hpp>
 #include <gnb/sctp/task.hpp>
-
+#include <iostream>
 namespace nr::gnb
 {
 
@@ -77,6 +77,7 @@ void NgapTask::onLoop()
             handleAssociationSetup(w.clientId, w.associationId, w.inStreams, w.outStreams);
             break;
         case NmGnbSctp::RECEIVE_MESSAGE:
+	    std::cout<<"Receive Message task.cpp"<<std::endl;
             handleSctpMessage(w.clientId, w.stream, w.buffer);
             break;
         case NmGnbSctp::ASSOCIATION_SHUTDOWN:

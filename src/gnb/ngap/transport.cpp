@@ -25,7 +25,7 @@
 #include <asn/ngap/ASN_NGAP_UnsuccessfulOutcome.h>
 #include <asn/ngap/ASN_NGAP_UserLocationInformation.h>
 #include <asn/ngap/ASN_NGAP_UserLocationInformationNR.h>
-
+#include <iostream>
 static e_ASN_NGAP_Criticality FindCriticalityOfUserIe(ASN_NGAP_NGAP_PDU *pdu, ASN_NGAP_ProtocolIE_ID_t ieId)
 {
     auto procedureCode =
@@ -132,10 +132,11 @@ void NgapTask::sendNgapNonUe(int associatedAmf, ASN_NGAP_NGAP_PDU *pdu)
 void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
 {
     /* Find UE and AMF contexts */
-
+    std::cout<<"send ngap ue associated"<<std::endl;
     auto *ue = findUeContext(ueId);
     if (ue == nullptr)
     {
+	std::cout<<1<<std::endl;
         asn::Free(asn_DEF_ASN_NGAP_NGAP_PDU, pdu);
         return;
     }
@@ -143,6 +144,7 @@ void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
     auto *amf = findAmfContext(ue->associatedAmfId);
     if (amf == nullptr)
     {
+	std::cout<<2<<std::endl;
         asn::Free(asn_DEF_ASN_NGAP_NGAP_PDU, pdu);
         return;
     }
@@ -151,6 +153,7 @@ void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
     {
         if (ue->amfUeNgapId > 0)
         {
+	    std::cout<<3<<std::endl;
             asn::ngap::AddProtocolIeIfUsable(
                 *pdu, asn_DEF_ASN_NGAP_AMF_UE_NGAP_ID, ASN_NGAP_ProtocolIE_ID_id_AMF_UE_NGAP_ID,
                 FindCriticalityOfUserIe(pdu, ASN_NGAP_ProtocolIE_ID_id_AMF_UE_NGAP_ID), [ue](void *mem) {
@@ -158,7 +161,7 @@ void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
                     asn::SetSigned64(ue->amfUeNgapId, id);
                 });
         }
-
+	std::cout<<4<<std::endl;
         asn::ngap::AddProtocolIeIfUsable(
             *pdu, asn_DEF_ASN_NGAP_RAN_UE_NGAP_ID, ASN_NGAP_ProtocolIE_ID_id_RAN_UE_NGAP_ID,
             FindCriticalityOfUserIe(pdu, ASN_NGAP_ProtocolIE_ID_id_RAN_UE_NGAP_ID),
@@ -191,6 +194,7 @@ void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
     {
         m_logger->err("NGAP PDU ASN constraint validation failed");
         asn::Free(asn_DEF_ASN_NGAP_NGAP_PDU, pdu);
+	std::cout<<5<<std::endl;
         return;
     }
 
@@ -205,12 +209,15 @@ void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
         msg->stream = ue->uplinkStream;
         msg->buffer = UniqueBuffer{buffer, static_cast<size_t>(encoded)};
         m_base->sctpTask->push(std::move(msg));
-
+	std::cout<<6<<std::endl;
+	//std::cout<<msg->clientId<<std::endl;
         if (m_base->nodeListener)
         {
+	    std::cout<<7<<std::endl;
             std::string xer = ngap_encode::EncodeXer(asn_DEF_ASN_NGAP_NGAP_PDU, pdu);
             if (xer.length() > 0)
             {
+		std::cout<<8<<std::endl;
                 m_base->nodeListener->onSend(app::NodeType::GNB, m_base->config->name, app::NodeType::AMF, amf->amfName,
                                              app::ConnectionType::NGAP, xer);
             }
@@ -222,6 +229,7 @@ void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
 
 void NgapTask::handleSctpMessage(int amfId, uint16_t stream, const UniqueBuffer &buffer)
 {
+    std::cout<<"#######Handle Sctop message@@@@@@@@@@"<<std::endl;
     auto *amf = findAmfContext(amfId);
     if (amf == nullptr)
         return;
@@ -254,12 +262,15 @@ void NgapTask::handleSctpMessage(int amfId, uint16_t stream, const UniqueBuffer 
     if (pdu->present == ASN_NGAP_NGAP_PDU_PR_initiatingMessage)
     {
         auto value = pdu->choice.initiatingMessage->value;
+	std::cout<<"_______value parameter_______"<<std::endl;
+	std::cout<<value.present<<std::endl;
         switch (value.present)
         {
         case ASN_NGAP_InitiatingMessage__value_PR_ErrorIndication:
             receiveErrorIndication(amf->ctxId, &value.choice.ErrorIndication);
             break;
         case ASN_NGAP_InitiatingMessage__value_PR_InitialContextSetupRequest:
+	    std::cout<<"Initial context setup request transport.cpp"<<std::endl;
             receiveInitialContextSetup(amf->ctxId, &value.choice.InitialContextSetupRequest);
             break;
         case ASN_NGAP_InitiatingMessage__value_PR_RerouteNASRequest:
@@ -269,9 +280,11 @@ void NgapTask::handleSctpMessage(int amfId, uint16_t stream, const UniqueBuffer 
             receiveContextRelease(amf->ctxId, &value.choice.UEContextReleaseCommand);
             break;
         case ASN_NGAP_InitiatingMessage__value_PR_UEContextModificationRequest:
+	    std::cout<<"Context modification sessions"<<std::endl;
             receiveContextModification(amf->ctxId, &value.choice.UEContextModificationRequest);
             break;
         case ASN_NGAP_InitiatingMessage__value_PR_PDUSessionResourceSetupRequest:
+	    std::cout<<"PDU sessions"<<std::endl;
             receiveSessionResourceSetupRequest(amf->ctxId, &value.choice.PDUSessionResourceSetupRequest);
             break;
         case ASN_NGAP_InitiatingMessage__value_PR_DownlinkNASTransport:
