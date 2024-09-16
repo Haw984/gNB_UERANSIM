@@ -168,31 +168,31 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
             return;
         }
 
-	else if (dbm > MIN_ALLOWED_DBM && m_wifi == true)
-	{
-	    if(m_wifi == true)
+        else if (dbm > MIN_ALLOWED_DBM && m_wifi == true)
+        {
+            if(m_wifi == true)
+                {
+                if (NtsTask::flag == false)
             {
-            if (NtsTask::flag == false)
-	    {
-		if(m_interface == "" || m_ueInterface == "")
-		{
-		   m_logger->err("Interface not provided.");
-		   return;
-		}
-		else{
-		m_logger->info("Wifi request received.");
-                int status = system(" iptables -F");
-		status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface + " -s ", ipv4Address, " -j ACCEPT");
-		status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface + " -s ", ipv4Address, " -j ACCEPT");
-                if (status == 0)
-		{
-                   m_logger->info("Wifi connection successfully established.");
-                }
-	    	NtsTask::flag = true;
-		}
-	    }
-	    }
-	}
+            if(m_interface == "" || m_ueInterface == "")
+            {
+            m_logger->err("Interface not provided.");
+            return;
+            }
+            else{
+            m_logger->info("Wifi request received.");
+                    int status = system(" iptables -F");
+            status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface + " -s ", ipv4Address, " -j ACCEPT");
+            status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface + " -s ", ipv4Address, " -j ACCEPT");
+                    if (status == 0)
+            {
+                    m_logger->info("Wifi connection successfully established.");
+                    }
+                NtsTask::flag = true;
+            }
+            }
+            }
+        }
         if (m_stiToUe.count(msg->sti))
         {
             int ueId = m_stiToUe[msg->sti];

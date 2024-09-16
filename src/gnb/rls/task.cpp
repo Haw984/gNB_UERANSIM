@@ -10,6 +10,7 @@
 #include <gnb/rls/udp_task.cpp>
 #include <gnb/gtp/task.hpp>
 #include <gnb/rrc/task.hpp>
+#include <gnb/ngap/task.hpp>
 #include <utils/common.hpp>
 #include <utils/random.hpp>
 #include <iostream>
@@ -90,6 +91,15 @@ void GnbRlsTask::onLoop()
         case NmGnbRlsToRls::TRANSMISSION_FAILURE: {
             m_logger->debug("transmission failure [%s]", "");
             break;
+        }
+        case NmGnbRlsToRls::SESSION_TRANSMISSION: {
+            //auto &m = (rls::RlsSessionTransmission &)msg;
+            auto m = std::make_unique<NmGnbRlsToNgap>(NmGnbRlsToNgap::PACKET_SWITCH_REQUEST);
+            m->ueId = w.ueId;
+            m->psi = w.psi;
+            m->m_pduSession = std::move(w.m_pduSession);
+            m->m_ueSecurityCapability = std::move(w.m_ueSecurityCapability);
+            m_base->ngapTask->push(std::move(m));
         }
         default: {
             m_logger->unhandledNts(*msg);

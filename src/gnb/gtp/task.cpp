@@ -14,6 +14,8 @@
 #include <utils/libc_error.hpp>
 
 #include <asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h>
+#include <cstdlib>
+#include <string>
 
 namespace nr::gnb
 {
@@ -87,6 +89,17 @@ void GtpTask::onLoop()
         }
         }
         break;
+    }
+    //Urwah
+    case NtsMessageType::GNB_GTP_TO_RLS:{
+        auto &w = dynamic_cast<NmGnbGtpToRls &>(*msg); 
+        switch (w.present)
+        {
+            case NmGnbGtpToRls::DATA_PDU_RELEASE: {
+                auto m = std::make_unique<NmGnbGtpToRls>(NmGnbGtpToRls::DATA_PDU_RELEASE);
+                //m->
+            }
+        }
     }
     case NtsMessageType::UDP_SERVER_RECEIVE:
         handleUdpReceive(dynamic_cast<udp::NwUdpServerReceive &>(*msg));
@@ -191,6 +204,14 @@ void GtpTask::handleUplinkData(int ueId, int psi, OctetString &&pdu)
     if (!m_pduSessions.count(sessionInd))
     {
         m_logger->err("Uplink data failure, PDU session not found. UE[%d] PSI[%d]", ueId, psi);
+        /*std::string command;
+        command = "echo 1 > /proc/sys/net/ipv4/ip_forward";
+        system(command.c_str());
+
+        command = "sudo iptables -t nat -A PREROUTING -s 172.45.1.113 -j DNAT --to-destination 10.0.3.12";
+        system(command.c_str());
+        command = "sudo ip route add 10.0.5.12 via 10.101.1.4 dev eth2";
+        system(command.c_str());*/
         return;
     }
 

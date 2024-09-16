@@ -89,6 +89,31 @@ void NgapTask::onLoop()
         }
         break;
     }
+    //Urwah
+    case NtsMessageType::GNB_RLS_TO_NGAP: {
+        auto &w = dynamic_cast<NmGnbRlsToNgap &>(*msg);
+        switch (w.present)
+        {
+        case NmGnbRlsToNgap::PACKET_SWITCH_REQUEST: {
+            std::cout<<"$$$$$$$NGAP pohnch gya$$$$$$$$$$$"<<std::endl;
+            m_pathSwitchReq = true;
+
+            /*std::string gtpIp = m_base->config->gtpAdvertiseIp.value_or(m_base->config->gtpIp);
+
+            w.m_pduSession->downTunnel.address = utils::IpToOctetString(gtpIp);
+            w.m_pduSession->downTunnel.teid = ++m_downlinkTeidCounter;
+
+            auto w = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::SESSION_CREATE);
+            w->resource = w.m_pduSession;
+            m_base->gtpTask->push(std::move(w));
+            ue->pduSessions.insert(resource->psi);*/
+
+            handlePathSwitchRequest(w.ueId, *w.m_pduSession, w.m_ueSecurityCapability);
+
+        }
+        }
+    }
+
     default: {
         m_logger->unhandledNts(*msg);
         break;

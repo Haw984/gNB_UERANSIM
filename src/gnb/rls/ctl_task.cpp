@@ -10,6 +10,7 @@
 
 #include <stdexcept>
 #include <utils/common.hpp>
+#include <iostream>
 
 static constexpr const size_t MAX_PDU_COUNT = 4096;
 static constexpr const int MAX_PDU_TTL = 3000;
@@ -146,6 +147,17 @@ void RlsControlTask::handleRlsMessage(int ueId, rls::RlsMessage &msg)
         {
             m_logger->err("Unhandled RLS PDU type");
         }
+    }
+    else if (msg.msgType == rls::EMessageType::SESSION_TRANSMISSION)
+    {
+        std::cout<<"Pohnch gya ha msg ctl_task tk!!"<<std::endl;
+        auto &m = (rls::RlsSessionTransmission &)msg;
+        auto w = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SESSION_TRANSMISSION);
+        w->ueId = m.pduId;
+        w->psi = m.payload;
+        w->m_pduSession = std::move(m.m_pduSession);
+        w->m_ueSecurityCapability = std::move(m.m_ueSecurityCapability);
+        m_mainTask->push(std::move(w));
     }
     else
     {

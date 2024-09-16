@@ -25,6 +25,7 @@
 
 namespace nr::gnb
 {
+class NgapTask;
 
 class GnbRlsTask : public NtsTask
 {
