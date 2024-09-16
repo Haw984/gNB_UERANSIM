@@ -64,7 +64,6 @@ void NgapTask::onLoop()
             break;
         }
         case NmGnbRrcToNgap::RADIO_LINK_FAILURE: {
-            std::cout<<"Radio link failure (by Urwah)"<<std::endl;
             handleRadioLinkFailure(w.ueId);
             break;
         }
@@ -79,7 +78,6 @@ void NgapTask::onLoop()
             handleAssociationSetup(w.clientId, w.associationId, w.inStreams, w.outStreams);
             break;
         case NmGnbSctp::RECEIVE_MESSAGE:
-	    std::cout<<"Receive message"<<std::endl;
             handleSctpMessage(w.clientId, w.stream, w.buffer);
             break;
         case NmGnbSctp::ASSOCIATION_SHUTDOWN:

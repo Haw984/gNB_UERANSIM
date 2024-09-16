@@ -35,6 +35,7 @@ void GnbRlsTask::onStart()
     m_udpTask->start();
     m_ctlTask->start();
     m_wifiCounter = 0;
+
 }
 
 void GnbRlsTask::onLoop()
@@ -68,12 +69,6 @@ void GnbRlsTask::onLoop()
             }
             m_wifiCounter++;
         }
-        else
-        {
-            auto m = std::make_unique<NmGnbRlsToRrc>(NmGnbRlsToRrc::SIGNAL_LOST);
-            m->ueId = w.ueId;
-            m_base->rrcTask->push(std::move(m));
-        }
         m_logger->debug("UE[%d] signal lost", w.ueId);
         break;
         }
@@ -100,6 +95,18 @@ void GnbRlsTask::onLoop()
         case NmGnbRlsToRls::TRANSMISSION_FAILURE: {
             m_logger->debug("transmission failure [%s]", "");
             break;
+        }
+        case NmGnbRlsToRls::SESSION_CHANGE:{
+            
+            /*auto m = std::make_unique<NmGnbRlsToRrc>(NmGnbRlsToRrc::SIGNAL_LOST);
+            m->ueId = w.ueId;
+            m_base->rrcTask->push(std::move(m));*/
+            std::cout<<"task.cpp psi : "<< w.psi<<std::endl;
+            auto m = std::make_unique<NmGnbRlsToGtp>(NmGnbRlsToGtp::DATA_PDU_RELEASE);
+            m->ueId = w.ueId;
+            m->psi = w.psi;
+            m_base->gtpTask->push(std::move(m));
+        
         }
         default: {
             m_logger->unhandledNts(*msg);
@@ -135,6 +142,13 @@ void GnbRlsTask::onLoop()
             m->data = std::move(w.pdu);
             m_ctlTask->push(std::move(m));
             break;
+        }
+        case NmGnbGtpToRls::DATA_PDU_INFO: {
+            auto m = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::DOWNLINK_SESSION);
+            m->ueId = w.ueId;
+            m->psi = w.psi;
+            m->m_pduSession = std::move(w.m_pduSession);
+            m_ctlTask->push(std::move(m));
         }
         }
         break;

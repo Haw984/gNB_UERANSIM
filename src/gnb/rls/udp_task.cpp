@@ -118,12 +118,12 @@ void RlsUdpTask::onStart()
 
 void RlsUdpTask::onLoop()
 {
-    auto current = utils::CurrentTimeMillis();
+    /*auto current = utils::CurrentTimeMillis();
     if (current - m_lastLoop > LOOP_PERIOD)
     {
         m_lastLoop = current;
         heartbeatCycle(current);
-    }
+    }*/
 
     uint8_t buffer[BUFFER_SIZE];
     InetAddress peerAddress;
@@ -148,7 +148,7 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
     if (msg->msgType == rls::EMessageType::HEARTBEAT)
     {
         int dbm = EstimateSimulatedDbm(m_phyLocation, ((const rls::RlsHeartBeat &)*msg).simPos);
-	std::string ipv4Address = getIPv4AddressString(addr);
+	    std::string ipv4Address = getIPv4AddressString(addr);
         if (dbm < MIN_ALLOWED_DBM)
         {
             if(m_wifi == true)
@@ -167,7 +167,7 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
             }
             else
             {
-                if (m_stiToUe.count(msg->sti))
+                /*if (m_stiToUe.count(msg->sti))
                 {
                     m_logger->info("Lost signal power (by Urwah)");
                     int ueId = m_stiToUe[msg->sti];
@@ -181,36 +181,61 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
                     //w->msg = std::move(msg);
                     m_ctlTask->push(std::move(w));
                     
+                }*/
+                if (m_stiToUe.count(msg->sti))
+                {
+                    int ueId = m_stiToUe[msg->sti];
+                    auto it = std::find(releaseUeid.begin(), releaseUeid.end(), ueId);
+                    //for (int number : ueIdList)
+                    //{
+                    //std::cout<<"ue id list is not empty"<<ueIdList[0]<<std::endl;
+                    //}
+                    if (it != releaseUeid.end())
+                    {
+                    }
+                    else
+                    {
+                        auto w= std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SESSION_CHANGE);
+                        w->ueId = ueId;
+                        auto exist = std::find(NtsTask::ueIdPsi.ueIdList.begin(), NtsTask::ueIdPsi.ueIdList.end(), ueId);
+                        if (exist != NtsTask::ueIdPsi.ueIdList.end()){
+                            int index = std::distance(NtsTask::ueIdPsi.ueIdList.begin(), exist);
+                            w->psi = NtsTask::ueIdPsi.uePsiList[index];   
+                            std::cout<<"udp_tasl: Psi: "<<w->psi<<std::endl;
+                        }
+                        releaseUeid.push_back(ueId);
+                        m_ctlTask->push(std::move(w));
+                    }
                 }
             }
             return;
         }
 
-	else if (dbm > MIN_ALLOWED_DBM && m_wifi == true)
-	{
-	    if(m_wifi == true)
+        else if (dbm > MIN_ALLOWED_DBM && m_wifi == true)
+        {
+            if(m_wifi == true)
+                {
+                if (NtsTask::flag == false)
             {
-            if (NtsTask::flag == false)
-	    {
-		if(m_interface == "" || m_ueInterface == "")
-		{
-		   m_logger->err("Interface not provided.");
-		   return;
-		}
-		else{
-		m_logger->info("Wifi request received.");
-                int status = system(" iptables -F");
-		status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface + " -s ", ipv4Address, " -j ACCEPT");
-		status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface + " -s ", ipv4Address, " -j ACCEPT");
-                if (status == 0)
-		{
-                   m_logger->info("Wifi connection successfully established.");
-                }
-	    	NtsTask::flag = true;
-		}
-	    }
-	    }
-	}
+            if(m_interface == "" || m_ueInterface == "")
+            {
+            m_logger->err("Interface not provided.");
+            return;
+            }
+            else{
+            m_logger->info("Wifi request received.");
+                    int status = system(" iptables -F");
+            status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface + " -s ", ipv4Address, " -j ACCEPT");
+            status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface + " -s ", ipv4Address, " -j ACCEPT");
+                    if (status == 0)
+            {
+                    m_logger->info("Wifi connection successfully established.");
+                    }
+                NtsTask::flag = true;
+            }
+            }
+            }
+        }
         if (m_stiToUe.count(msg->sti))
         {
             int ueId = m_stiToUe[msg->sti];

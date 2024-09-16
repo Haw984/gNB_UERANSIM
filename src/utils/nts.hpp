@@ -127,6 +127,11 @@ class NtsTask
   public:
     NtsTask() = default;
     static bool flag;
+    struct infoList{
+      std::vector<int> ueIdList;
+      std::vector<int> uePsiList;
+    }; static infoList ueIdPsi;
+    
 
     virtual ~NtsTask() = default;
 

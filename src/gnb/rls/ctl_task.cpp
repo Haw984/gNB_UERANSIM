@@ -10,6 +10,7 @@
 
 #include <stdexcept>
 #include <utils/common.hpp>
+#include <iostream>
 
 static constexpr const size_t MAX_PDU_COUNT = 4096;
 static constexpr const int MAX_PDU_TTL = 3000;
@@ -19,6 +20,7 @@ static constexpr const int TIMER_ID_ACK_SEND = 2;
 
 static constexpr const int TIMER_PERIOD_ACK_CONTROL = 1500;
 static constexpr const int TIMER_PERIOD_ACK_SEND = 2250;
+NtsTask::infoList NtsTask::ueIdPsi = {{},{}};
 
 namespace nr::gnb
 {
@@ -57,7 +59,7 @@ void RlsControlTask::onLoop()
             handleSignalDetected(w.ueId);
             break;
         case NmGnbRlsToRls::SIGNAL_LOST:
-            handleSignalLost(w.ueId);
+            handleSignalLost(w.ueId, w.psi);
             break;
         case NmGnbRlsToRls::RECEIVE_RLS_MESSAGE:
             handleRlsMessage(w.ueId, *w.msg);
@@ -68,6 +70,17 @@ void RlsControlTask::onLoop()
         case NmGnbRlsToRls::DOWNLINK_RRC:
             handleDownlinkRrcDelivery(w.ueId, w.pduId, w.rrcChannel, std::move(w.data));
             break;
+        case NmGnbRlsToRls::DOWNLINK_SESSION:
+            handleDownlinkSessionDelivery(w.ueId, w.psi, std::move(w.m_pduSession));
+            break;
+        case NmGnbRlsToRls::SESSION_CHANGE:{
+            std::cout<<"ctl_task.cpp psi : "<< w.psi<<std::endl;
+            auto m= std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SESSION_CHANGE);
+            m->ueId = w.ueId;
+            m->psi = w.psi;
+            m_mainTask->push(std::move(m));
+        
+        }
         default:
             m_logger->unhandledNts(*msg);
             break;
@@ -105,15 +118,18 @@ void RlsControlTask::handleSignalDetected(int ueId)
     m_mainTask->push(std::move(w));
 }
 
-void RlsControlTask::handleSignalLost(int ueId)
+void RlsControlTask::handleSignalLost(int ueId, int psi)
 {
+    std::cout<<"ctl_task: "<<psi<<std::endl;
     auto w = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SIGNAL_LOST);
     w->ueId = ueId;
+    w->psi = psi;
     m_mainTask->push(std::move(w));
 }
 
 void RlsControlTask::handleRlsMessage(int ueId, rls::RlsMessage &msg)
 {
+    
     if (msg.msgType == rls::EMessageType::PDU_TRANSMISSION_ACK)
     {
         auto &m = (rls::RlsPduTransmissionAck &)msg;
@@ -131,6 +147,16 @@ void RlsControlTask::handleRlsMessage(int ueId, rls::RlsMessage &msg)
             auto w = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::UPLINK_DATA);
             w->ueId = ueId;
             w->psi = static_cast<int>(m.payload);
+            //Urwah
+            auto it = std::find(NtsTask::ueIdPsi.ueIdList.begin(), NtsTask::ueIdPsi.ueIdList.end(), ueId);
+            if (it != NtsTask::ueIdPsi.ueIdList.end())
+            {
+            }
+            else{
+                NtsTask::ueIdPsi.ueIdList.push_back(ueId);
+                NtsTask::ueIdPsi.uePsiList.push_back(w->psi); 
+                std::cout<<"peechay aya ha"<<std::endl;
+            }
             w->data = std::move(m.pdu);
             m_mainTask->push(std::move(w));
         }
@@ -198,6 +224,17 @@ void RlsControlTask::handleDownlinkRrcDelivery(int ueId, uint32_t pduId, rrc::Rr
 
     m_udpTask->send(ueId, msg);
 }
+//Urwah
+void RlsControlTask::handleDownlinkSessionDelivery(int ueId, int psi, std::unique_ptr<PduSessionResource> m_pduSession)
+{
+    rls::RlsSessionTransmission msg{m_sti};
+    //msg.pduType = rls::EPduType::SESSION;
+    msg.m_pduSession = std::move(m_pduSession);
+    msg.payload = static_cast<uint32_t>(psi);
+    msg.pduId = ueId;
+    m_udpTask->send(ueId, msg);
+}
+
 
 void RlsControlTask::handleDownlinkDataDelivery(int ueId, int psi, OctetString &&data)
 {
@@ -206,6 +243,17 @@ void RlsControlTask::handleDownlinkDataDelivery(int ueId, int psi, OctetString &
     msg.pdu = std::move(data);
     msg.payload = static_cast<uint32_t>(psi);
     msg.pduId = 0;
+    //Urwah
+    auto it = std::find(NtsTask::ueIdPsi.ueIdList.begin(), NtsTask::ueIdPsi.ueIdList.end(), ueId);
+    if (it != NtsTask::ueIdPsi.ueIdList.end())
+    {
+    }
+    else{
+        NtsTask::ueIdPsi.ueIdList.push_back(ueId);
+        NtsTask::ueIdPsi.uePsiList.push_back(psi); 
+        std::cout<<"peechay aya ha 2"<<std::endl;
+    }
+
 
     m_udpTask->send(ueId, msg);
 }

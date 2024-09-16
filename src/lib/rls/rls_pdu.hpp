@@ -10,7 +10,7 @@
 
 #include <cstdint>
 #include <memory>
-
+#include <gnb/types.hpp>
 #include <utils/common_types.hpp>
 #include <utils/octet_string.hpp>
 #include <utils/octet_view.hpp>
@@ -30,13 +30,15 @@ enum class EMessageType : uint8_t
     HEARTBEAT_ACK = 5,
     PDU_TRANSMISSION = 6,
     PDU_TRANSMISSION_ACK = 7,
+    //Urwah
+    SESSION_TRANSMISSION = 8,
 };
 
 enum class EPduType : uint8_t
 {
     RESERVED = 0,
     RRC,
-    DATA
+    DATA,
 };
 
 struct RlsMessage
@@ -67,12 +69,27 @@ struct RlsHeartBeatAck : RlsMessage
     }
 };
 
+//Urwah
+struct RlsSessionTransmission : RlsMessage
+{
+    EPduType pduType{};
+    uint32_t pduId{};
+    uint32_t payload{};
+    std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
+
+    explicit RlsSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::SESSION_TRANSMISSION, sti)
+    {
+    }
+};
+
 struct RlsPduTransmission : RlsMessage
 {
     EPduType pduType{};
     uint32_t pduId{};
     uint32_t payload{};
     OctetString pdu{};
+    //Urwah
+    //std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
 
     explicit RlsPduTransmission(uint64_t sti) : RlsMessage(EMessageType::PDU_TRANSMISSION, sti)
     {

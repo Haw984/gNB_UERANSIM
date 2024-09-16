@@ -59,13 +59,15 @@ struct NmGnbRlsToGtp : NtsMessage
     enum PR
     {
         DATA_PDU_DELIVERY,
+        //Urwah
+        DATA_PDU_RELEASE,
     } present;
 
     // DATA_PDU_DELIVERY
     int ueId{};
     int psi{};
     OctetString pdu;
-
+    
     explicit NmGnbRlsToGtp(PR present) : NtsMessage(NtsMessageType::GNB_RLS_TO_GTP), present(present)
     {
     }
@@ -76,12 +78,17 @@ struct NmGnbGtpToRls : NtsMessage
     enum PR
     {
         DATA_PDU_DELIVERY,
+        //Urwah
+        DATA_PDU_INFO,
     } present;
 
     // DATA_PDU_DELIVERY
     int ueId{};
     int psi{};
     OctetString pdu{};
+    //Urwah
+    std::unique_ptr<PduSessionResource> m_pduSession;
+
 
     explicit NmGnbGtpToRls(PR present) : NtsMessage(NtsMessageType::GNB_GTP_TO_RLS), present(present)
     {
@@ -101,6 +108,9 @@ struct NmGnbRlsToRls : NtsMessage
         UPLINK_DATA,
         RADIO_LINK_FAILURE,
         TRANSMISSION_FAILURE,
+        //Urwah
+        DOWNLINK_SESSION,
+        SESSION_CHANGE,
     } present;
 
     // SIGNAL_DETECTED
@@ -117,6 +127,8 @@ struct NmGnbRlsToRls : NtsMessage
     // DOWNLINK_DATA
     // UPLINK_DATA
     int psi{};
+    //Urwah
+    std::unique_ptr<PduSessionResource> m_pduSession;
 
     // DOWNLINK_DATA
     // DOWNLINK_RRC

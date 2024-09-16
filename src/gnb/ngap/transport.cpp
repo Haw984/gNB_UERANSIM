@@ -137,7 +137,6 @@ void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
     auto *ue = findUeContext(ueId);
     if (ue == nullptr)
     {
-	std::cout<<1<<std::endl;
         asn::Free(asn_DEF_ASN_NGAP_NGAP_PDU, pdu);
         return;
     }
@@ -145,7 +144,6 @@ void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
     auto *amf = findAmfContext(ue->associatedAmfId);
     if (amf == nullptr)
     {
-	std::cout<<2<<std::endl;
         asn::Free(asn_DEF_ASN_NGAP_NGAP_PDU, pdu);
         return;
     }
@@ -154,7 +152,6 @@ void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
     {
         if (ue->amfUeNgapId > 0)
         {
-	    std::cout<<3<<std::endl;
             asn::ngap::AddProtocolIeIfUsable(
                 *pdu, asn_DEF_ASN_NGAP_AMF_UE_NGAP_ID, ASN_NGAP_ProtocolIE_ID_id_AMF_UE_NGAP_ID,
                 FindCriticalityOfUserIe(pdu, ASN_NGAP_ProtocolIE_ID_id_AMF_UE_NGAP_ID), [ue](void *mem) {
@@ -162,7 +159,6 @@ void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
                     asn::SetSigned64(ue->amfUeNgapId, id);
                 });
         }
-	std::cout<<4<<std::endl;
         asn::ngap::AddProtocolIeIfUsable(
             *pdu, asn_DEF_ASN_NGAP_RAN_UE_NGAP_ID, ASN_NGAP_ProtocolIE_ID_id_RAN_UE_NGAP_ID,
             FindCriticalityOfUserIe(pdu, ASN_NGAP_ProtocolIE_ID_id_RAN_UE_NGAP_ID),
@@ -195,7 +191,6 @@ void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
     {
         m_logger->err("NGAP PDU ASN constraint validation failed");
         asn::Free(asn_DEF_ASN_NGAP_NGAP_PDU, pdu);
-	std::cout<<5<<std::endl;
         return;
     }
 
@@ -210,14 +205,11 @@ void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
         msg->stream = ue->uplinkStream;
         msg->buffer = UniqueBuffer{buffer, static_cast<size_t>(encoded)};
         m_base->sctpTask->push(std::move(msg));
-	std::cout<<6<<std::endl;
         if (m_base->nodeListener)
         {
-	    std::cout<<7<<std::endl;
             std::string xer = ngap_encode::EncodeXer(asn_DEF_ASN_NGAP_NGAP_PDU, pdu);
             if (xer.length() > 0)
             {
-		std::cout<<8<<std::endl;
                 m_base->nodeListener->onSend(app::NodeType::GNB, m_base->config->name, app::NodeType::AMF, amf->amfName,
                                              app::ConnectionType::NGAP, xer);
             }
@@ -229,7 +221,6 @@ void NgapTask::sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu)
 
 void NgapTask::handleSctpMessage(int amfId, uint16_t stream, const UniqueBuffer &buffer)
 {
-    std::cout<<"#######Handle Sctop message@@@@@@@@@@"<<std::endl;
     auto *amf = findAmfContext(amfId);
     if (amf == nullptr)
         return;
@@ -262,8 +253,6 @@ void NgapTask::handleSctpMessage(int amfId, uint16_t stream, const UniqueBuffer 
     if (pdu->present == ASN_NGAP_NGAP_PDU_PR_initiatingMessage)
     {
         auto value = pdu->choice.initiatingMessage->value;
-	std::cout<<"_______value parameter_______"<<std::endl;
-	std::cout<<value.present<<std::endl;
         switch (value.present)
         {
         case ASN_NGAP_InitiatingMessage__value_PR_ErrorIndication:

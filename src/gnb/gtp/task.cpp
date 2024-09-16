@@ -14,7 +14,7 @@
 #include <utils/libc_error.hpp>
 
 #include <asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h>
-
+#include <iostream>
 namespace nr::gnb
 {
 
@@ -85,6 +85,15 @@ void GtpTask::onLoop()
             handleUplinkData(w.ueId, w.psi, std::move(w.pdu));
             break;
         }
+        case NmGnbRlsToGtp::DATA_PDU_RELEASE: {
+            std::cout<<"Message received from rls to gtp: "<<w.ueId<<"  "<<w.psi<<std::endl;
+            auto m = std::make_unique<NmGnbGtpToRls>(NmGnbGtpToRls::DATA_PDU_INFO);
+            uint64_t sessionInd = MakeSessionResInd(w.ueId, w.psi);
+            m->m_pduSession = std::move(m_pduSessions[sessionInd]);
+            std::cout<<"m_pduSession: "<< m->m_pduSession->downTunnel.teid << std::endl;
+            m_base->rlsTask->push(std::move(m));
+            break;
+        }
         }
         break;
     }
@@ -118,7 +127,14 @@ void GtpTask::handleSessionCreate(PduSessionResource *session)
 
     uint64_t sessionInd = MakeSessionResInd(session->ueId, session->psi);
     m_pduSessions[sessionInd] = std::unique_ptr<PduSessionResource>(session);
+    if (m_pduSessions[sessionInd] > 0)
+    {
+        std::cout<< "Bahra hoa ha baby2!!!"<<std::endl;
+    }
+    else{
+        std::cout<<"khali ha londay2"<<std::endl;
 
+    }
     m_sessionTree.insert(sessionInd, session->downTunnel.teid);
 
     updateAmbrForUe(session->ueId);
@@ -202,11 +218,11 @@ void GtpTask::handleUplinkData(int ueId, int psi, OctetString &&pdu)
         gtp.payload = std::move(pdu);
         gtp.msgType = gtp::GtpMessage::MT_G_PDU;
         gtp.teid = pduSession->upTunnel.teid;
-
+        std::cout<<"!!!!!!!!!!!!!!!!Session teid!!!!!!!!!!!!!!: "<<gtp.teid<<std::endl;
         auto ul = std::make_unique<gtp::UlPduSessionInformation>();
         // TODO: currently using first QSI
         ul->qfi = static_cast<int>(pduSession->qosFlows->list.array[0]->qosFlowIdentifier);
-
+        std::cout<<"QFI: "<<ul->qfi << std::endl;
         auto cont = std::make_unique<gtp::PduSessionContainerExtHeader>();
         cont->pduSessionInformation = std::move(ul);
         gtp.extHeaders.push_back(std::move(cont));
