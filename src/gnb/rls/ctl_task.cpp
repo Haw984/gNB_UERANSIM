@@ -71,7 +71,7 @@ void RlsControlTask::onLoop()
             handleDownlinkRrcDelivery(w.ueId, w.pduId, w.rrcChannel, std::move(w.data));
             break;
         case NmGnbRlsToRls::DOWNLINK_SESSION:
-            handleDownlinkSessionDelivery(w.ueId, w.psi, std::move(w.m_pduSession));
+            handleDownlinkSessionDelivery(w.ueId, w.psi, w.amfId, std::move(w.m_pduSession));
             break;
         case NmGnbRlsToRls::SESSION_CHANGE:{
             std::cout<<"ctl_task.cpp psi : "<< w.psi<<std::endl;
@@ -225,13 +225,14 @@ void RlsControlTask::handleDownlinkRrcDelivery(int ueId, uint32_t pduId, rrc::Rr
     m_udpTask->send(ueId, msg);
 }
 //Urwah
-void RlsControlTask::handleDownlinkSessionDelivery(int ueId, int psi, std::unique_ptr<PduSessionResource> m_pduSession)
+void RlsControlTask::handleDownlinkSessionDelivery(int ueId, int psi, int amfId, std::unique_ptr<PduSessionResource> m_pduSession)
 {
     rls::RlsSessionTransmission msg{m_sti};
     //msg.pduType = rls::EPduType::SESSION;
     msg.m_pduSession = std::move(m_pduSession);
     msg.payload = static_cast<uint32_t>(psi);
-    msg.pduId = ueId;
+    msg.pduId = static_cast<uint32_t>(ueId);
+    msg.amfId = static_cast<uint32_t>(amfId);
     m_udpTask->send(ueId, msg);
 }
 

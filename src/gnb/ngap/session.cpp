@@ -44,7 +44,6 @@ void NgapTask::receiveSessionResourceSetupRequest(int amfId, ASN_NGAP_PDUSession
 {
     std::vector<ASN_NGAP_PDUSessionResourceSetupItemSURes *> successList;
     std::vector<ASN_NGAP_PDUSessionResourceFailedToSetupItemSURes *> failedList;
-    std::cout<<"session resource setup req"<<std::endl;
     auto *ue = findUeByNgapIdPair(amfId, ngap_utils::FindNgapIdPair(msg));
     if (ue == nullptr)
         return;

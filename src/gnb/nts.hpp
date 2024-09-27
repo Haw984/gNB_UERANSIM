@@ -78,6 +78,25 @@ struct NmGnbGtpToRls : NtsMessage
     enum PR
     {
         DATA_PDU_DELIVERY,
+
+    } present;
+
+    // DATA_PDU_DELIVERY
+    int ueId{};
+    int psi{};
+    OctetString pdu{};
+
+
+
+    explicit NmGnbGtpToRls(PR present) : NtsMessage(NtsMessageType::GNB_GTP_TO_RLS), present(present)
+    {
+    }
+};
+//Urwah
+struct NmGnbGtpToNgap : NtsMessage
+{
+    enum PR
+    {
         //Urwah
         DATA_PDU_INFO,
     } present;
@@ -85,12 +104,36 @@ struct NmGnbGtpToRls : NtsMessage
     // DATA_PDU_DELIVERY
     int ueId{};
     int psi{};
-    OctetString pdu{};
+    //OctetString pdu{};
+    int amfId{0};
+
     //Urwah
     std::unique_ptr<PduSessionResource> m_pduSession;
 
 
-    explicit NmGnbGtpToRls(PR present) : NtsMessage(NtsMessageType::GNB_GTP_TO_RLS), present(present)
+    explicit NmGnbGtpToNgap(PR present) : NtsMessage(NtsMessageType::GNB_GTP_TO_NGAP), present(present)
+    {
+    }
+};
+//Urwah
+struct NmGnbNgapToRls : NtsMessage
+{
+    enum PR
+    {
+        //Urwah
+        DATA_PDU_INFO,
+    } present;
+
+    // DATA_PDU_DELIVERY
+    int ueId{};
+    int psi{};
+    //OctetString pdu{};
+    int amfId{};
+    //Urwah
+    std::unique_ptr<PduSessionResource> m_pduSession;
+
+
+    explicit NmGnbNgapToRls(PR present) : NtsMessage(NtsMessageType::GNB_NGAP_TO_RLS), present(present)
     {
     }
 };
@@ -129,6 +172,7 @@ struct NmGnbRlsToRls : NtsMessage
     int psi{};
     //Urwah
     std::unique_ptr<PduSessionResource> m_pduSession;
+    int amfId;
 
     // DOWNLINK_DATA
     // DOWNLINK_RRC

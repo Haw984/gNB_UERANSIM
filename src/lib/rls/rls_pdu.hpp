@@ -75,6 +75,7 @@ struct RlsSessionTransmission : RlsMessage
     EPduType pduType{};
     uint32_t pduId{};
     uint32_t payload{};
+    uint32_t amfId{};
     std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
 
     explicit RlsSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::SESSION_TRANSMISSION, sti)

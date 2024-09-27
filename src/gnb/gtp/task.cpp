@@ -12,6 +12,8 @@
 #include <gnb/rls/task.hpp>
 #include <utils/constants.hpp>
 #include <utils/libc_error.hpp>
+#include <gnb/ngap/task.hpp>
+
 
 #include <asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h>
 #include <iostream>
@@ -87,11 +89,13 @@ void GtpTask::onLoop()
         }
         case NmGnbRlsToGtp::DATA_PDU_RELEASE: {
             std::cout<<"Message received from rls to gtp: "<<w.ueId<<"  "<<w.psi<<std::endl;
-            auto m = std::make_unique<NmGnbGtpToRls>(NmGnbGtpToRls::DATA_PDU_INFO);
+            auto m = std::make_unique<NmGnbGtpToNgap>(NmGnbGtpToNgap::DATA_PDU_INFO);
             uint64_t sessionInd = MakeSessionResInd(w.ueId, w.psi);
+            m->ueId = w.ueId;
+            m->psi = w.psi;
             m->m_pduSession = std::move(m_pduSessions[sessionInd]);
             std::cout<<"m_pduSession: "<< m->m_pduSession->downTunnel.teid << std::endl;
-            m_base->rlsTask->push(std::move(m));
+            m_base->ngapTask->push(std::move(m));
             break;
         }
         }
@@ -101,6 +105,7 @@ void GtpTask::onLoop()
         handleUdpReceive(dynamic_cast<udp::NwUdpServerReceive &>(*msg));
         break;
     default:
+        std::cout<<"task.cpp of gtp "<<static_cast<int>(msg->msgType)<<std::endl;
         m_logger->unhandledNts(*msg);
         break;
     }

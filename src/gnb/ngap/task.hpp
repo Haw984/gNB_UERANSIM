@@ -55,6 +55,8 @@ class NgapTask : public NtsTask
     int64_t m_ueNgapIdCounter;
     uint32_t m_downlinkTeidCounter;
     bool m_isInitialized;
+    std::unordered_map<uint64_t, std::unique_ptr<PduSessionResource>> m_pduSessions;
+
 
     friend class GnbCmdHandler;
 

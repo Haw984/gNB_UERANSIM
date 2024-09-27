@@ -67,6 +67,8 @@ void EncodeRlsMessage(const RlsMessage &msg, OctetString &stream)
         }
         stream.appendOctet4(m.pduId);
         stream.appendOctet4(m.payload);
+        stream.appendOctet4(m.amfId);
+
 
         //serialize(stream, m_pduSession);
         //%%%%%%%%%%%%%%%%%%

@@ -143,15 +143,24 @@ void GnbRlsTask::onLoop()
             m_ctlTask->push(std::move(m));
             break;
         }
-        case NmGnbGtpToRls::DATA_PDU_INFO: {
+        }
+        break;
+    }
+    case NtsMessageType::GNB_NGAP_TO_RLS: {
+        auto &w = dynamic_cast<NmGnbNgapToRls &>(*msg);
+        switch (w.present)
+        {
+        case NmGnbNgapToRls::DATA_PDU_INFO: {
             auto m = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::DOWNLINK_SESSION);
             m->ueId = w.ueId;
             m->psi = w.psi;
+            m->amfId = w.amfId;
             m->m_pduSession = std::move(w.m_pduSession);
+            //std::cout<<"Encoder: m->amfId: "<<w.amfId<<std::endl;
+
             m_ctlTask->push(std::move(m));
         }
         }
-        break;
     }
     default:
         m_logger->unhandledNts(*msg);
