@@ -7,7 +7,7 @@
 //
 
 #include "task.hpp"
-
+#include "utils.hpp"
 #include <sstream>
 
 #include <gnb/app/task.hpp>
@@ -94,27 +94,36 @@ void NgapTask::onLoop()
         auto &w = dynamic_cast<NmGnbRlsToNgap &>(*msg);
         switch (w.present)
         {
-        case NmGnbRlsToNgap::PACKET_SWITCH_REQUEST: {
-            std::cout<<"$$$$$$$NGAP pohnch gya$$$$$$$$$$$"<<std::endl;
-            m_pathSwitchReq = true;
+            case NmGnbRlsToNgap::PACKET_SWITCH_REQUEST: {
+                std::cout<<"$$$$$$$NGAP pohnch gya$$$$$$$$$$$"<<std::endl;
+                m_pathSwitchReq = true;
 
-            /*std::string gtpIp = m_base->config->gtpAdvertiseIp.value_or(m_base->config->gtpIp);
+                std::string gtpIp = m_base->config->gtpAdvertiseIp.value_or(m_base->config->gtpIp);
 
-            w.m_pduSession->downTunnel.address = utils::IpToOctetString(gtpIp);
-            w.m_pduSession->downTunnel.teid = ++m_downlinkTeidCounter;
+                w.m_pduSession->downTunnel.address = utils::IpToOctetString(gtpIp);
+                w.m_pduSession->downTunnel.teid = ++m_downlinkTeidCounter;
 
-            auto w = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::SESSION_CREATE);
-            w->resource = w.m_pduSession;
-            m_base->gtpTask->push(std::move(w));
-            ue->pduSessions.insert(resource->psi);*/
+                // Print downTunnel TEID
+                std::cout << "downTunnel TEID: " << w.m_pduSession->downTunnel.teid << std::endl;
 
-            handlePathSwitchRequest(w.ueId, *w.m_pduSession, w.m_ueSecurityCapability);
+                /*auto m = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::SESSION_CREATE);
+                m->resource = std::move(w.m_pduSession);
+                m_base->gtpTask->push(std::move(m));
+                ue->pduSessions.insert(resource->psi);*/
 
-        }
+                handlePathSwitchRequest(w.ueId, w.amfId, *w.m_pduSession, w.m_ueSecurityCapability);
+                break;
+            }
+            case NmGnbRlsToNgap::PATH_SWITCH_REQUEST_ACK: {
+                m_logger->info("Path switch request acknowledgement received");
+                break;
+            }
+
         }
     }
-
     default: {
+        std::cout<<"ngap task.cpp unhandled nts case: "<<static_cast<int> (msg->msgType)<<std::endl;
+        
         m_logger->unhandledNts(*msg);
         break;
     }

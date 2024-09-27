@@ -155,6 +155,7 @@ void RlsControlTask::handleRlsMessage(int ueId, rls::RlsMessage &msg)
         auto w = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SESSION_TRANSMISSION);
         w->ueId = m.pduId;
         w->psi = m.payload;
+        w->amfId = m.amfId;
         w->m_pduSession = std::move(m.m_pduSession);
         w->m_ueSecurityCapability = std::move(m.m_ueSecurityCapability);
         m_mainTask->push(std::move(w));

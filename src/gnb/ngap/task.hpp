@@ -37,6 +37,7 @@ extern "C"
     struct ASN_NGAP_OverloadStop;
     struct ASN_NGAP_PDUSessionResourceReleaseCommand;
     struct ASN_NGAP_Paging;
+    struct ASN_NGAP_PathSwitchRequestAcknowledge;
 }
 
 namespace nr::gnb
@@ -90,6 +91,9 @@ class NgapTask : public NtsTask
     void sendNgSetupRequest(int amfId);
     void sendErrorIndication(int amfId, NgapCause cause = NgapCause::Protocol_unspecified, int ueId = 0);
     void receiveNgSetupResponse(int amfId, ASN_NGAP_NGSetupResponse *msg);
+    //Urwah
+    void receivePSRAck(int amfId, ASN_NGAP_PathSwitchRequestAcknowledge *msg);
+
     void receiveNgSetupFailure(int amfId, ASN_NGAP_NGSetupFailure *msg);
     void receiveErrorIndication(int amfId, ASN_NGAP_ErrorIndication *msg);
     void receiveAmfConfigurationUpdate(int amfId, ASN_NGAP_AMFConfigurationUpdate *msg);
@@ -117,7 +121,7 @@ class NgapTask : public NtsTask
     void sendNasNonDeliveryIndication(int ueId, const OctetString &nasPdu, NgapCause cause);
     void receiveRerouteNasRequest(int amfId, ASN_NGAP_RerouteNASRequest *msg);
     //Urwah
-    void handlePathSwitchRequest(int ueId, const PduSessionResource &pduSessionResource, 
+    void handlePathSwitchRequest(int ueId, int amfId, const PduSessionResource &pduSessionResource, 
                                         const nas::IEUeSecurityCapability ueSecurityCapability);
 /* PDU session management */
     void receiveSessionResourceSetupRequest(int amfId, ASN_NGAP_PDUSessionResourceSetupRequest *msg);

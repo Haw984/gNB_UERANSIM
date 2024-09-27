@@ -144,6 +144,7 @@ struct NmGnbRlsToRls : NtsMessage
     std::vector<rls::PduInfo> pduList;
 
     //Urwah
+    int amfId{};
     std::unique_ptr<PduSessionResource> m_pduSession;
     nas::IEUeSecurityCapability m_ueSecurityCapability;
 
@@ -176,6 +177,7 @@ struct NmGnbRlsToNgap : NtsMessage
     enum PR
     {
         PACKET_SWITCH_REQUEST,
+        PATH_SWITCH_REQUEST_ACK
     } present;
 
     // RRC_PDU_DELIVERY
@@ -183,6 +185,7 @@ struct NmGnbRlsToNgap : NtsMessage
     //Urwah
     std::unique_ptr<PduSessionResource> m_pduSession;
     int psi{};
+    int amfId{};
 
     OctetString pdu{};
     nas::IEUeSecurityCapability m_ueSecurityCapability;

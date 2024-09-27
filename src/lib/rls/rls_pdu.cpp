@@ -108,6 +108,7 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
         auto res = std::make_unique<RlsSessionTransmission>(sti);
         res->pduId = stream.read4UI();
         res->payload = stream.read4UI();
+        res->amfId = stream.read4UI();
 
         int ueId = stream.read4UI();
         int psi = stream.read4UI();

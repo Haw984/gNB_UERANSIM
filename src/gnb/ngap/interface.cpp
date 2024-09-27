@@ -203,6 +203,33 @@ void NgapTask::receiveNgSetupResponse(int amfId, ASN_NGAP_NGSetupResponse *msg)
     }
 }
 
+//Urwah
+void NgapTask::receivePSRAck(int amfId, ASN_NGAP_PathSwitchRequestAcknowledge *msg)
+{
+    m_logger->debug("Path switch request Acknowledge received");
+
+    /*auto *amf = findAmfContext(amfId);
+    if (amf == nullptr)
+        return;
+
+    AssignDefaultAmfConfigs(amf, msg);
+
+    amf->state = EAmfState::CONNECTED;
+    m_logger->info("NG Setup procedure is successful");
+
+    if (!m_isInitialized && std::all_of(m_amfCtx.begin(), m_amfCtx.end(),
+                                        [](auto &amfCtx) { return amfCtx.second->state == EAmfState::CONNECTED; }))
+    {
+        m_isInitialized = true;
+
+        auto update = std::make_unique<NmGnbStatusUpdate>(NmGnbStatusUpdate::NGAP_IS_UP);
+        update->isNgapUp = true;
+        m_base->appTask->push(std::move(update));
+
+        m_base->rrcTask->push(std::make_unique<NmGnbNgapToRrc>(NmGnbNgapToRrc::RADIO_POWER_ON));
+    }*/
+}
+
 void NgapTask::receiveNgSetupFailure(int amfId, ASN_NGAP_NGSetupFailure *msg)
 {
     auto *amf = findAmfContext(amfId);

@@ -97,11 +97,13 @@ void GnbRlsTask::onLoop()
             auto m = std::make_unique<NmGnbRlsToNgap>(NmGnbRlsToNgap::PACKET_SWITCH_REQUEST);
             m->ueId = w.ueId;
             m->psi = w.psi;
+            m->amfId = w.amfId;
             m->m_pduSession = std::move(w.m_pduSession);
             m->m_ueSecurityCapability = std::move(w.m_ueSecurityCapability);
             m_base->ngapTask->push(std::move(m));
         }
         default: {
+            std::cout<<"rls unhandled nts case"<<std::endl;
             m_logger->unhandledNts(*msg);
             break;
         }
