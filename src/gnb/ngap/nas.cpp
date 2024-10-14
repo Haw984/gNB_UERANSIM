@@ -34,6 +34,7 @@
 #include "asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h" // Adjust the path as necessary
 #include <asn/ngap/ASN_NGAP_UESecurityCapabilities.h>
 #include <asn/asn1c/OCTET_STRING.h>
+#include <gnb/gtp/task.hpp>
 
 #include <iostream>
 
@@ -227,12 +228,12 @@ void NgapTask::receiveRerouteNasRequest(int amfId, ASN_NGAP_RerouteNASRequest *m
 
     sendNgapUeAssociated(ue->ctxId, ngapPdu);
 }
-
+//Urwah
 void NgapTask::handlePathSwitchRequest(int ueId, int amfId, const PduSessionResource &pduSessionResource, 
                                         const nas::IEUeSecurityCapability ueSecurityCapability)
 {
     m_logger->debug("Path Switch Request received from UE[%d]", ueId);
-
+    m_pathSwitchReqUeId = ueId;
     // Ensure UE context exists
     if (!m_ueCtx.count(ueId))
     {
@@ -273,6 +274,12 @@ void NgapTask::handlePathSwitchRequest(int ueId, int amfId, const PduSessionReso
     ueCtx->uplinkStream = amfCtx->nextStream;
     std::cout << "Added Determine uplink stream" << std::endl;
 
+    auto w = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::UE_CONTEXT_UPDATE);
+    ueCtx->ueAmbr.dlAmbr = pduSessionResource.sessionAmbr.dlAmbr;
+    ueCtx->ueAmbr.ulAmbr = pduSessionResource.sessionAmbr.ulAmbr;
+    w->update = std::make_unique<GtpUeContextUpdate>(true, ueCtx->ctxId, ueCtx->ueAmbr);
+    m_base->gtpTask->push(std::move(w));
+
     // Prepare NGAP PDU for Path Switch Request
     auto *pdu = asn::New<ASN_NGAP_NGAP_PDU>();
     pdu->present = ASN_NGAP_NGAP_PDU_PR_initiatingMessage;
@@ -281,7 +288,7 @@ void NgapTask::handlePathSwitchRequest(int ueId, int amfId, const PduSessionReso
     pdu->choice.initiatingMessage->criticality = ASN_NGAP_Criticality_reject;
     pdu->choice.initiatingMessage->value.present = ASN_NGAP_InitiatingMessage__value_PR_PathSwitchRequest;
     std::cout << "Added ASN_NGAP_NGAP_PDU" << std::endl;
-
+ 
     // Send the prepared Path Switch Request
     sendNgapUeAssociatedPathSwitchReq(ueId, pdu, pduSessionResource, ueSecurityCapability);
 }

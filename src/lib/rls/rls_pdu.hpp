@@ -34,6 +34,7 @@ enum class EMessageType : uint8_t
     PDU_TRANSMISSION_ACK = 7,
     //Urwah
     SESSION_TRANSMISSION = 8,
+    XN_SESSION_TRANSMISSION = 9,
 
 };
 
@@ -85,6 +86,21 @@ struct RlsSessionTransmission : RlsMessage
 
 
     explicit RlsSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::SESSION_TRANSMISSION, sti)
+    {
+    }
+};
+
+struct RlsXnSessionTransmission : RlsMessage
+{
+    EPduType pduType{};
+    uint32_t pduId{};
+    uint32_t payload{};
+    uint32_t amfId{};
+
+    std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
+
+
+    explicit RlsXnSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::XN_SESSION_TRANSMISSION, sti)
     {
     }
 };

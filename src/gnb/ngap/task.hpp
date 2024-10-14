@@ -59,7 +59,11 @@ class NgapTask : public NtsTask
     int64_t m_ueNgapIdCounter;
     uint32_t m_downlinkTeidCounter;
     bool m_isInitialized;
-    bool m_pathSwitchReq;
+    //Urwah
+    //bool m_pathSwitchReq;
+    std::unique_ptr<nr::gnb::PduSessionResource> m_pathSwitchPduSession;
+    //PduSessionResource *m_pathSwitchPduSession;
+    int m_pathSwitchReqUeId = 0;
     
 
     friend class GnbCmdHandler;
@@ -67,6 +71,8 @@ class NgapTask : public NtsTask
   public:
     explicit NgapTask(TaskBase *base);
     ~NgapTask() override = default;
+    //static std::unique_ptr<nr::gnb::PduSessionResource> m_pathSwitchPduSession;
+
 
   protected:
     void onStart() override;

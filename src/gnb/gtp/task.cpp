@@ -91,7 +91,7 @@ void GtpTask::onLoop()
         break;
     }
     //Urwah
-    case NtsMessageType::GNB_GTP_TO_RLS:{
+    /*case NtsMessageType::GNB_GTP_TO_RLS:{
         auto &w = dynamic_cast<NmGnbGtpToRls &>(*msg); 
         switch (w.present)
         {
@@ -100,7 +100,7 @@ void GtpTask::onLoop()
                 //m->
             }
         }
-    }
+    }*/
     case NtsMessageType::UDP_SERVER_RECEIVE:
         handleUdpReceive(dynamic_cast<udp::NwUdpServerReceive &>(*msg));
         break;
@@ -128,7 +128,7 @@ void GtpTask::handleSessionCreate(PduSessionResource *session)
         m_logger->err("PDU session resource could not be created, UE context with ID[%d] not found", session->ueId);
         return;
     }
-
+    m_logger->info("New session created. ");
     uint64_t sessionInd = MakeSessionResInd(session->ueId, session->psi);
     m_pduSessions[sessionInd] = std::unique_ptr<PduSessionResource>(session);
 

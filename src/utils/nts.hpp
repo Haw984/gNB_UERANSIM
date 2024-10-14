@@ -46,6 +46,7 @@ enum class NtsMessageType
     GNB_NGAP_TO_GTP,
     //Urwah
     GNB_RLS_TO_NGAP,
+    GNB_NGAP_TO_RLS,
     GNB_SCTP,
 
     UE_APP_TO_TUN,

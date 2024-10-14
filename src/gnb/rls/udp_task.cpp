@@ -148,22 +148,22 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
     if (msg->msgType == rls::EMessageType::HEARTBEAT)
     {
         int dbm = EstimateSimulatedDbm(m_phyLocation, ((const rls::RlsHeartBeat &)*msg).simPos);
-	std::string ipv4Address = getIPv4AddressString(addr);
+	    std::string ipv4Address = getIPv4AddressString(addr);
         if (dbm < MIN_ALLOWED_DBM)
         {
 	    if(m_wifi == true)
 	    {
-		if (NtsTask::flag == true)
-		{
+            if (NtsTask::flag == true)
+            {
                 int status = route("iptables -D FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address," -j ACCEPT");
                 status = route("iptables -D FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j ACCEPT");
-		status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address, " -j DROP");
-		status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j DROP");
-                if (status == 0){
-		m_logger->info("Weak signal power.");
-		m_logger->info("Wifi connection removed.");}
-            	}
-		NtsTask::flag = false;
+                status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address, " -j DROP");
+                status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j DROP");
+            if (status == 0){
+                m_logger->info("Weak signal power.");
+                m_logger->info("Wifi connection removed.");}
+            }
+            NtsTask::flag = false;
 	    }
             return;
         }
@@ -171,26 +171,27 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
         else if (dbm > MIN_ALLOWED_DBM && m_wifi == true)
         {
             if(m_wifi == true)
-                {
+            {
                 if (NtsTask::flag == false)
-            {
-            if(m_interface == "" || m_ueInterface == "")
-            {
-            m_logger->err("Interface not provided.");
-            return;
-            }
-            else{
-            m_logger->info("Wifi request received.");
-                    int status = system(" iptables -F");
-            status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface + " -s ", ipv4Address, " -j ACCEPT");
-            status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface + " -s ", ipv4Address, " -j ACCEPT");
-                    if (status == 0)
-            {
-                    m_logger->info("Wifi connection successfully established.");
+                {
+                    if(m_interface == "" || m_ueInterface == "")
+                    {
+                        m_logger->err("Interface not provided.");
+                        return;
                     }
-                NtsTask::flag = true;
-            }
-            }
+                    else
+                    {
+                        m_logger->info("Wifi request received.");
+                        int status = system(" iptables -F");
+                        status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface + " -s ", ipv4Address, " -j ACCEPT");
+                        status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface + " -s ", ipv4Address, " -j ACCEPT");
+                        if (status == 0)
+                        {
+                            m_logger->info("Wifi connection successfully established.");
+                        }
+                        NtsTask::flag = true;
+                    }
+                }
             }
         }
         if (m_stiToUe.count(msg->sti))
@@ -284,6 +285,7 @@ void RlsUdpTask::send(int ueId, const rls::RlsMessage &msg)
     if (!m_ueMap.count(ueId))
     {
         // ignore the message
+        std::cout<<" Msg is ignored!!!"<<std::endl;
         return;
     }
 

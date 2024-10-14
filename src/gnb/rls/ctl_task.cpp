@@ -69,6 +69,15 @@ void RlsControlTask::onLoop()
         case NmGnbRlsToRls::DOWNLINK_RRC:
             handleDownlinkRrcDelivery(w.ueId, w.pduId, w.rrcChannel, std::move(w.data));
             break;
+        case NmGnbRlsToRls::DOWNLINK_XN_DATA:
+            {std::cout<<"NmGnbRlsToRls::DOWNLINK_XN_DATA message received"<<std::endl;
+            rls::RlsXnSessionTransmission msg{m_sti};
+            msg.m_pduSession = std::move(w.m_pduSession);
+            std::cout<<"msg.m_pduSession->ueId"<<msg.m_pduSession->ueId<<std::endl;
+            std::cout<<"w.ueId"<<w.ueId<<std::endl;
+
+            m_udpTask->send(w.ueId, msg);
+            break;}
         default:
             m_logger->unhandledNts(*msg);
             break;
@@ -153,7 +162,8 @@ void RlsControlTask::handleRlsMessage(int ueId, rls::RlsMessage &msg)
         std::cout<<"Pohnch gya ha msg ctl_task tk!!"<<std::endl;
         auto &m = (rls::RlsSessionTransmission &)msg;
         auto w = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SESSION_TRANSMISSION);
-        w->ueId = m.pduId;
+        w->ueId = ueId;
+        std::cout<<" UEID: "<<m.pduId<<std::endl;
         w->psi = m.payload;
         w->amfId = m.amfId;
         w->m_pduSession = std::move(m.m_pduSession);

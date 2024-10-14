@@ -141,6 +141,22 @@ void GnbRlsTask::onLoop()
         }
         break;
     }
+    case NtsMessageType::GNB_NGAP_TO_RLS:{
+        auto &w = dynamic_cast<NmGnbNgapToRls &>(*msg);
+        switch(w.present)
+        {
+            case NmGnbNgapToRls::XN_SESSION_CREATE:{
+                auto l = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::DOWNLINK_XN_DATA);
+                l->m_pduSession = std::unique_ptr<nr::gnb::PduSessionResource>(w.resource);
+                l->ueId = w.ueId;
+                std::cout<<" GNB_NGAP_TO_RLS received"<<std::endl;
+                m_ctlTask->push(std::move(l));
+                break;
+            }
+        }
+ 
+    }
+
     default:
         m_logger->unhandledNts(*msg);
         break;

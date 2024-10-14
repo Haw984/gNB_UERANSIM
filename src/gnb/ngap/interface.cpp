@@ -14,6 +14,7 @@
 #include <gnb/app/task.hpp>
 #include <gnb/rrc/task.hpp>
 #include <gnb/sctp/task.hpp>
+#include <gnb/types.hpp>
 
 #include <asn/ngap/ASN_NGAP_AMFConfigurationUpdate.h>
 #include <asn/ngap/ASN_NGAP_AMFConfigurationUpdateFailure.h>
@@ -30,7 +31,10 @@
 #include <asn/ngap/ASN_NGAP_ServedGUAMIItem.h>
 #include <asn/ngap/ASN_NGAP_SliceSupportItem.h>
 #include <asn/ngap/ASN_NGAP_SupportedTAItem.h>
+#include <gnb/gtp/task.hpp>  
+#include <gnb/rls/task.hpp>
 
+#include <iostream>
 namespace nr::gnb
 {
 
@@ -207,27 +211,28 @@ void NgapTask::receiveNgSetupResponse(int amfId, ASN_NGAP_NGSetupResponse *msg)
 void NgapTask::receivePSRAck(int amfId, ASN_NGAP_PathSwitchRequestAcknowledge *msg)
 {
     m_logger->debug("Path switch request Acknowledge received");
+    auto m = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::SESSION_CREATE);
+    std::cout<<"m_pathSwitchReqUeId: "<<m_pathSwitchReqUeId<<std::endl;
+    auto newResource = std::make_unique<nr::gnb::PduSessionResource>(m_pathSwitchReqUeId, m_pathSwitchPduSession->psi);
+    std::cout<<"newResource->ueId: "<<newResource->ueId<<std::endl;
+    std::cout<<"newResource->psi: "<<newResource->psi<<std::endl;
+    // Copy over the remaining data fields from the old resource
+    newResource->sessionAmbr = std::move(m_pathSwitchPduSession->sessionAmbr);
+    newResource->dataForwardingNotPossible = std::move(m_pathSwitchPduSession->dataForwardingNotPossible);
+    newResource->sessionType = std::move(m_pathSwitchPduSession->sessionType);
+    newResource->upTunnel = std::move(m_pathSwitchPduSession->upTunnel);
+    newResource->downTunnel = std::move(m_pathSwitchPduSession->downTunnel);
+    newResource->qosFlows = std::move(m_pathSwitchPduSession->qosFlows);
+    m_pathSwitchPduSession = std::move(newResource);
+    m->resource = m_pathSwitchPduSession.get(); //m_pathSwitchPduSession.get();  // Get raw pointer
+    m_base->gtpTask->push(std::move(m));
 
-    /*auto *amf = findAmfContext(amfId);
-    if (amf == nullptr)
-        return;
+    auto y = std::make_unique<NmGnbNgapToRls>(NmGnbNgapToRls::XN_SESSION_CREATE);
+    y->ueId = m_pathSwitchPduSession->ueId;
+    y->resource = m_pathSwitchPduSession.get();  // Get raw pointer
+    std::cout<<"m_pathSwitchPduSession: "<<m_pathSwitchPduSession->ueId<<std::endl;
+    m_base->rlsTask->push(std::move(y));
 
-    AssignDefaultAmfConfigs(amf, msg);
-
-    amf->state = EAmfState::CONNECTED;
-    m_logger->info("NG Setup procedure is successful");
-
-    if (!m_isInitialized && std::all_of(m_amfCtx.begin(), m_amfCtx.end(),
-                                        [](auto &amfCtx) { return amfCtx.second->state == EAmfState::CONNECTED; }))
-    {
-        m_isInitialized = true;
-
-        auto update = std::make_unique<NmGnbStatusUpdate>(NmGnbStatusUpdate::NGAP_IS_UP);
-        update->isNgapUp = true;
-        m_base->appTask->push(std::move(update));
-
-        m_base->rrcTask->push(std::make_unique<NmGnbNgapToRrc>(NmGnbNgapToRrc::RADIO_POWER_ON));
-    }*/
 }
 
 void NgapTask::receiveNgSetupFailure(int amfId, ASN_NGAP_NGSetupFailure *msg)

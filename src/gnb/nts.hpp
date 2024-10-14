@@ -106,6 +106,7 @@ struct NmGnbRlsToRls : NtsMessage
         RADIO_LINK_FAILURE,
         TRANSMISSION_FAILURE,
         //Urwah
+        DOWNLINK_XN_DATA,
         SESSION_TRANSMISSION,
     } present;
 
@@ -277,7 +278,33 @@ struct NmGnbNgapToGtp : NtsMessage
     {
     }
 };
+//Urwah
+struct NmGnbNgapToRls : NtsMessage
+{
+    enum PR
+    {
+        XN_SESSION_CREATE,
+    } present;
 
+    // UE_CONTEXT_UPDATE
+    std::unique_ptr<GtpUeContextUpdate> update{};
+
+    // SESSION_CREATE
+    PduSessionResource *resource{};
+
+    // UE_CONTEXT_RELEASE
+    // SESSION_RELEASE
+    int ueId{};
+    OctetString pdu{};
+
+
+    // SESSION_RELEASE
+    int psi{};
+
+    explicit NmGnbNgapToRls(PR present) : NtsMessage(NtsMessageType::GNB_NGAP_TO_RLS), present(present)
+    {
+    }
+};
 struct NmGnbSctp : NtsMessage
 {
     enum PR
