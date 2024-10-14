@@ -84,6 +84,7 @@ void GtpTask::onLoop()
         switch (w.present)
         {
         case NmGnbRlsToGtp::DATA_PDU_DELIVERY: {
+            std::cout<<"Uplink data!!"<<std::endl;
             handleUplinkData(w.ueId, w.psi, std::move(w.pdu));
             break;
         }
@@ -96,6 +97,19 @@ void GtpTask::onLoop()
             m->m_pduSession = std::move(m_pduSessions[sessionInd]);
             std::cout<<"m_pduSession: "<< m->m_pduSession->downTunnel.teid << std::endl;
             m_base->ngapTask->push(std::move(m));
+            auto it = std::find(NtsTask::ueIdPsi.ueIdList.begin(), NtsTask::ueIdPsi.ueIdList.end(), w.ueId);
+            if (it != NtsTask::ueIdPsi.ueIdList.end())
+            {
+                // Find the index of the element to be removed
+                int index = std::distance(NtsTask::ueIdPsi.ueIdList.begin(), it);
+
+                // Erase the element from both ueIdList and uePsiList at the corresponding index
+                NtsTask::ueIdPsi.ueIdList.erase(it);  // Remove from ueIdList
+                NtsTask::ueIdPsi.uePsiList.erase(NtsTask::ueIdPsi.uePsiList.begin() + index);  // Remove from uePsiList 
+            }
+            
+            //handleSessionRelease(w.ueId, w.psi);
+
             break;
         }
         }
@@ -129,7 +143,15 @@ void GtpTask::handleSessionCreate(PduSessionResource *session)
         m_logger->err("PDU session resource could not be created, UE context with ID[%d] not found", session->ueId);
         return;
     }
-
+    //Urwah
+    auto it = std::find(NtsTask::ueIdPsi.ueIdList.begin(), NtsTask::ueIdPsi.ueIdList.end(), session->ueId);
+    if (it != NtsTask::ueIdPsi.ueIdList.end())
+    {
+    }
+    else{
+        NtsTask::ueIdPsi.ueIdList.push_back(session->ueId);
+        NtsTask::ueIdPsi.uePsiList.push_back(session->psi); 
+    }
     uint64_t sessionInd = MakeSessionResInd(session->ueId, session->psi);
     m_pduSessions[sessionInd] = std::unique_ptr<PduSessionResource>(session);
     if (m_pduSessions[sessionInd] > 0)

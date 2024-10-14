@@ -126,6 +126,8 @@ class NgapTask : public NtsTask
     /* Radio resource control */
     void handleRadioLinkFailure(int ueId);
     void receivePaging(int amfId, ASN_NGAP_Paging *msg);
+    //Urwah
+    void handleSignalLost(int ueId, int psi);
 };
 
 } // namespace nr::gnb

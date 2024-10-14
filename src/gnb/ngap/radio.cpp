@@ -56,4 +56,20 @@ void NgapTask::receivePaging(int amfId, ASN_NGAP_Paging *msg)
     m_base->rrcTask->push(std::move(w));
 }
 
+//Urwah
+void NgapTask::handleSignalLost(int ueId, int psi)
+{
+    // Notify GTP task
+    auto *ue = findUeContext(ueId);
+    if (ue == nullptr)
+        return;
+    std::cout<<1<<std::endl;
+    auto w = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::UE_CONTEXT_RELEASE);
+    w->ueId = ueId;
+    m_base->gtpTask->push(std::move(w));
+    ue->pduSessions.erase(psi);
+
+
+}
+
 } // namespace nr::gnb

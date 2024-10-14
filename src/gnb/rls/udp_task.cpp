@@ -186,10 +186,6 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
                 {
                     int ueId = m_stiToUe[msg->sti];
                     auto it = std::find(releaseUeid.begin(), releaseUeid.end(), ueId);
-                    //for (int number : ueIdList)
-                    //{
-                    //std::cout<<"ue id list is not empty"<<ueIdList[0]<<std::endl;
-                    //}
                     if (it != releaseUeid.end())
                     {
                     }
@@ -201,7 +197,6 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
                         if (exist != NtsTask::ueIdPsi.ueIdList.end()){
                             int index = std::distance(NtsTask::ueIdPsi.ueIdList.begin(), exist);
                             w->psi = NtsTask::ueIdPsi.uePsiList[index];   
-                            std::cout<<"udp_tasl: Psi: "<<w->psi<<std::endl;
                         }
                         releaseUeid.push_back(ueId);
                         m_ctlTask->push(std::move(w));

@@ -147,16 +147,6 @@ void RlsControlTask::handleRlsMessage(int ueId, rls::RlsMessage &msg)
             auto w = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::UPLINK_DATA);
             w->ueId = ueId;
             w->psi = static_cast<int>(m.payload);
-            //Urwah
-            auto it = std::find(NtsTask::ueIdPsi.ueIdList.begin(), NtsTask::ueIdPsi.ueIdList.end(), ueId);
-            if (it != NtsTask::ueIdPsi.ueIdList.end())
-            {
-            }
-            else{
-                NtsTask::ueIdPsi.ueIdList.push_back(ueId);
-                NtsTask::ueIdPsi.uePsiList.push_back(w->psi); 
-                std::cout<<"peechay aya ha"<<std::endl;
-            }
             w->data = std::move(m.pdu);
             m_mainTask->push(std::move(w));
         }
@@ -172,6 +162,15 @@ void RlsControlTask::handleRlsMessage(int ueId, rls::RlsMessage &msg)
         {
             m_logger->err("Unhandled RLS PDU type");
         }
+    }
+    else if (msg.msgType == rls::EMessageType::RELEASE_SESSION)
+    {
+        std::cout<<"Pohnch gya ha msg ctl_task tk msg.msgType == rls::EMessageType::RELEASE_SESSION!!"<<std::endl;
+        auto &m = (rls::RlsTerminateSession &)msg;
+        auto w = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SIGNAL_LOST);
+        w->ueId = m.pduId;
+        w->psi = m.psi;
+        m_mainTask->push(std::move(w));
     }
     else
     {
@@ -244,18 +243,6 @@ void RlsControlTask::handleDownlinkDataDelivery(int ueId, int psi, OctetString &
     msg.pdu = std::move(data);
     msg.payload = static_cast<uint32_t>(psi);
     msg.pduId = 0;
-    //Urwah
-    auto it = std::find(NtsTask::ueIdPsi.ueIdList.begin(), NtsTask::ueIdPsi.ueIdList.end(), ueId);
-    if (it != NtsTask::ueIdPsi.ueIdList.end())
-    {
-    }
-    else{
-        NtsTask::ueIdPsi.ueIdList.push_back(ueId);
-        NtsTask::ueIdPsi.uePsiList.push_back(psi); 
-        std::cout<<"peechay aya ha 2"<<std::endl;
-    }
-
-
     m_udpTask->send(ueId, msg);
 }
 

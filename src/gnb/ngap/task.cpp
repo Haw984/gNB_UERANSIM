@@ -68,6 +68,10 @@ void NgapTask::onLoop()
             handleRadioLinkFailure(w.ueId);
             break;
         }
+        case NmGnbRrcToNgap::SIGNAL_LOST: {
+            handleSignalLost(w.ueId, w.psi);
+            break;
+        }
         }
         break;
     }

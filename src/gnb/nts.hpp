@@ -44,6 +44,7 @@ struct NmGnbRlsToRrc : NtsMessage
     // SIGNAL_DETECTED
     // UPLINK_RRC
     int ueId{};
+    int psi{};
 
     // UPLINK_RRC
     OctetString data;
@@ -105,7 +106,6 @@ struct NmGnbGtpToNgap : NtsMessage
     int ueId{};
     int psi{};
     //OctetString pdu{};
-    int amfId{0};
 
     //Urwah
     std::unique_ptr<PduSessionResource> m_pduSession;
@@ -248,14 +248,14 @@ struct NmGnbRrcToNgap : NtsMessage
         INITIAL_NAS_DELIVERY,
         UPLINK_NAS_DELIVERY,
         RADIO_LINK_FAILURE,
-	SIGNAL_LOST
+	    SIGNAL_LOST,
     } present;
 
     // INITIAL_NAS_DELIVERY
     // UPLINK_NAS_DELIVERY
     // RADIO_LINK_FAILURE
     int ueId{};
-
+    int psi{};
     // INITIAL_NAS_DELIVERY
     // UPLINK_NAS_DELIVERY
     OctetString pdu{};

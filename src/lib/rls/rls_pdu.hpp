@@ -32,6 +32,7 @@ enum class EMessageType : uint8_t
     PDU_TRANSMISSION_ACK = 7,
     //Urwah
     SESSION_TRANSMISSION = 8,
+    RELEASE_SESSION = 10,
 };
 
 enum class EPduType : uint8_t
@@ -70,6 +71,16 @@ struct RlsHeartBeatAck : RlsMessage
 };
 
 //Urwah
+struct RlsTerminateSession : RlsMessage
+{
+    uint32_t pduId{};
+    uint32_t psi{};
+
+
+    explicit RlsTerminateSession(uint64_t sti) : RlsMessage(EMessageType::RELEASE_SESSION, sti)
+    {
+    }
+};
 struct RlsSessionTransmission : RlsMessage
 {
     EPduType pduType{};

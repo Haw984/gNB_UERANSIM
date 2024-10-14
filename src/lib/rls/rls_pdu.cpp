@@ -191,6 +191,15 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
             res->pduIds.push_back(stream.read4UI());
         return res;
     }
+    //Urwah
+    else if (msgType == EMessageType::RELEASE_SESSION)
+    {
+        auto res = std::make_unique<RlsTerminateSession>(sti);
+        res->pduId = stream.read4UI();
+        res->psi = stream.read4UI();
+        std::cout<<"res->pduId EMessageType::RELEASE_SESSION: "<< res->pduId<<std::endl;
+        return res;
+    }
 
     return nullptr;
 }
