@@ -7,7 +7,7 @@
 //
 
 #include "task.hpp"
-
+#include <utils/octet_view.hpp>
 #include <gnb/ngap/task.hpp>
 #include <lib/rrc/encode.hpp>
 
@@ -133,5 +133,88 @@ void GnbRrcTask::receiveRrcSetupComplete(int ueId, const ASN_RRC_RRCSetupComplet
 
     m_base->ngapTask->push(std::move(w));
 }
+
+void GnbRrcTask::createNewConnection(const OctetString& data) {
+    OctetView stream(data.data(), data.length());  // Create OctetView to decode data
+
+    // Decoding ueId as a 4-byte integer
+    int ueId = stream.read4UI();
+    auto *ue = tryFindUe(ueId);
+    if (ue) {
+        m_logger->warn("Discarding RRC Setup Request, UE context already exists");
+        return;
+    }
+    ue = createUe(ueId);
+
+    // Decoding initialId as an 8-byte integer
+    ue->initialId = stream.read8UL();
+
+    // Decoding isInitialIdSTmsi as a boolean (1 byte)
+    ue->isInitialIdSTmsi = static_cast<bool>(stream.readI());
+
+    // Decoding establishmentCause as an 8-byte integer
+    ue->establishmentCause = stream.read8L();
+
+    // Decoding optional sTmsi
+    uint8_t sTmsiPresent = stream.readI();
+    if (sTmsiPresent == 1) {
+        ue->sTmsi = std::nullopt;  // No sTmsi provided
+
+        /*GutiMobileIdentity sTmsi;
+
+        // Decoding amfRegionId (1-byte)
+        sTmsi.amfRegionId = stream.read();
+
+        // Decoding amfSetId (10 bits) and amfPointer (6 bits)
+        uint8_t amfSetIdUpper = stream.readI();  // Upper 8 bits of amfSetId
+        uint8_t amfSetIdLowerAndPointer = stream.readI();  // Lower 2 bits of amfSetId and 6 bits of amfPointer
+
+        sTmsi.amfSetId = (amfSetIdUpper << 2) | (amfSetIdLowerAndPointer >> 6);  // Combine the two parts of amfSetId
+        sTmsi.amfPointer = amfSetIdLowerAndPointer & 0x3F;  // Mask to get the lower 6 bits for amfPointer
+
+        // Decoding tmsi (octet4), which is 4 bytes
+        octet4 tmsiValue = stream.read4();
+        memcpy(sTmsi.tmsi, tmsiValue, sizeof(octet4));  // Correctly copy the tmsi array
+
+        // Prepare a BIT_STRING_t for the tmsi
+        BIT_STRING_t tmsiBitString;
+        tmsiBitString.buf = reinterpret_cast<uint8_t*>(&sTmsi.tmsi[0]);  // Point to the first element of the tmsi array
+        tmsiBitString.size = sizeof(octet4);  // Size of tmsi in bytes
+        tmsiBitString.bits_unused = 0;
+
+        // Combine tmsi and assign to sTmsi
+        ue->sTmsi = GutiMobileIdentity::FromSTmsi(asn::GetBitStringLong<48>(tmsiBitString));*/
+
+    } else {
+        ue->sTmsi = std::nullopt;  // No sTmsi provided
+    }
+    m_logger->info("RRC Setup Request for UE[%d]", ueId);
+
+}
+
+void GnbRrcTask::SendNewConnectionReq(int ueId)
+{
+    // Prepare RRC Setup
+    auto *pdu = asn::New<ASN_RRC_DL_CCCH_Message>();
+    pdu->message.present = ASN_RRC_DL_CCCH_MessageType_PR_c1;
+    pdu->message.choice.c1 = asn::NewFor(pdu->message.choice.c1);
+    pdu->message.choice.c1->present = ASN_RRC_DL_CCCH_MessageType__c1_PR_rrcSetup;
+    auto &rrcSetup = pdu->message.choice.c1->choice.rrcSetup = asn::New<ASN_RRC_RRCSetup>();
+    rrcSetup->rrc_TransactionIdentifier = getNextTid();
+    rrcSetup->criticalExtensions.present = ASN_RRC_RRCSetup__criticalExtensions_PR_rrcSetup;
+    auto &rrcSetupIEs = rrcSetup->criticalExtensions.choice.rrcSetup = asn::New<ASN_RRC_RRCSetup_IEs>();
+
+    ASN_RRC_CellGroupConfig masterCellGroup{};
+    masterCellGroup.cellGroupId = 0;
+
+    asn::SetOctetString(rrcSetupIEs->masterCellGroup,
+                        rrc::encode::EncodeS(asn_DEF_ASN_RRC_CellGroupConfig, &masterCellGroup));
+
+    m_logger->info("RRC Setup for UE[%d]", ueId);
+
+    sendRrcMessage(ueId, pdu);
+    asn::Free(asn_DEF_ASN_RRC_DL_CCCH_Message, pdu);
+}
+
 
 } // namespace nr::gnb

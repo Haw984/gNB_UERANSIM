@@ -272,7 +272,7 @@ void NgapTask::handlePathSwitchRequest(int ueId, int amfId, const PduSessionReso
     if (amfCtx->nextStream == 0 && amfCtx->association.outStreams > 1)
         amfCtx->nextStream += 1;
     ueCtx->uplinkStream = amfCtx->nextStream;
-    std::cout << "Added Determine uplink stream" << std::endl;
+    std::cout << "Added Determine uplink stream" << ueCtx->uplinkStream <<std::endl;
 
     auto w = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::UE_CONTEXT_UPDATE);
     ueCtx->ueAmbr.dlAmbr = pduSessionResource.sessionAmbr.dlAmbr;

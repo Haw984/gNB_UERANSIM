@@ -16,7 +16,7 @@
 #include <asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h>
 #include <cstdlib>
 #include <string>
-
+#include <iostream>
 namespace nr::gnb
 {
 
@@ -133,6 +133,30 @@ void GtpTask::handleSessionCreate(PduSessionResource *session)
     m_pduSessions[sessionInd] = std::unique_ptr<PduSessionResource>(session);
 
     m_sessionTree.insert(sessionInd, session->downTunnel.teid);
+    std::cout<<"----------------------------------"<<std::endl;
+    std::cout<<m_pduSessions[sessionInd]->ueId<<std::endl;
+    std::cout<<m_pduSessions[sessionInd]->psi<<std::endl;
+    std::cout<<m_pduSessions[sessionInd]->downTunnel.teid<<std::endl;
+    std::cout<<m_pduSessions[sessionInd]->upTunnel.teid<<std::endl;
+    std::cout << "downTunnel address: "<< std::endl;
+    for (size_t i = 0; i < sizeof( m_pduSessions[sessionInd]->downTunnel.address); ++i) {
+        if (i != 0) {
+            std::cout << ".";
+        }
+        std::cout << static_cast<int>( m_pduSessions[sessionInd]->downTunnel.address.data()[i]);
+    }
+    std::cout<<"\n"<<std::endl;
+    std::cout << "upTunnel address: "<< std::endl;
+
+    for (size_t i = 0; i < sizeof( m_pduSessions[sessionInd]->upTunnel.address); ++i) {
+        if (i != 0) {
+            std::cout << ".";
+        }
+        std::cout << static_cast<int>( m_pduSessions[sessionInd]->upTunnel.address.data()[i]);
+    }  
+    std::cout<<"\n"<<std::endl;
+    std::cout<<"----------------------------------"<<std::endl;
+
 
     updateAmbrForUe(session->ueId);
     updateAmbrForSession(sessionInd);
@@ -200,6 +224,7 @@ void GtpTask::handleUplinkData(int ueId, int psi, OctetString &&pdu)
         return;
 
     uint64_t sessionInd = MakeSessionResInd(ueId, psi);
+    std::cout<<"Uplink data!!!!"<<std::endl;
 
     if (!m_pduSessions.count(sessionInd))
     {

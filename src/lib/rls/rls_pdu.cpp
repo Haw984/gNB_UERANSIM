@@ -172,6 +172,11 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
         res->payload = stream.read4UI();
         res->amfId = stream.read4UI();
 
+        uint32_t length = stream.read4UI();  // This gives you the length of the serialized m_ueCtx
+
+        res->m_ueCtx = stream.readOctetString(static_cast<size_t>(length));  // Cast length to size_t
+
+
         int ueId = stream.read4UI();
         int psi = stream.read4UI();
 

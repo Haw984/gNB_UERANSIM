@@ -27,6 +27,10 @@ void GnbRrcTask::handleRlsSapMessage(NmGnbRlsToRrc &msg)
         handleUplinkRrc(msg.ueId, msg.rrcChannel, msg.data);
         break;
     }
+    case NmGnbRlsToRrc::XN_SIGNAL_DETECTED: {
+            createNewConnection(msg.data);
+        break;
+    }
     }
 }
 

@@ -233,6 +233,10 @@ void NgapTask::receivePSRAck(int amfId, ASN_NGAP_PathSwitchRequestAcknowledge *m
     std::cout<<"m_pathSwitchPduSession: "<<m_pathSwitchPduSession->ueId<<std::endl;
     m_base->rlsTask->push(std::move(y));
 
+    auto z = std::make_unique<NmGnbNgapToRrc>(NmGnbNgapToRrc::XN_CREATE_CONNECTION);
+    z->ueId = m_pathSwitchPduSession->ueId;
+    m_base->rrcTask->push(std::move(z));
+
 }
 
 void NgapTask::receiveNgSetupFailure(int amfId, ASN_NGAP_NGSetupFailure *msg)

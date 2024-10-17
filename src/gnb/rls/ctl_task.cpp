@@ -168,6 +168,7 @@ void RlsControlTask::handleRlsMessage(int ueId, rls::RlsMessage &msg)
         w->amfId = m.amfId;
         w->m_pduSession = std::move(m.m_pduSession);
         w->m_ueSecurityCapability = std::move(m.m_ueSecurityCapability);
+        w->data = std::move(m.m_ueCtx);
         m_mainTask->push(std::move(w));
     }
     else

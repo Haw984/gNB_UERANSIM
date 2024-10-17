@@ -80,6 +80,7 @@ struct RlsSessionTransmission : RlsMessage
     uint32_t pduId{};
     uint32_t payload{};
     uint32_t amfId{};
+    OctetString m_ueCtx;
 
     std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
     nas::IEUeSecurityCapability m_ueSecurityCapability;

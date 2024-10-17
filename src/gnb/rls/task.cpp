@@ -101,6 +101,10 @@ void GnbRlsTask::onLoop()
             m->m_pduSession = std::move(w.m_pduSession);
             m->m_ueSecurityCapability = std::move(w.m_ueSecurityCapability);
             m_base->ngapTask->push(std::move(m));
+
+            auto z = std::make_unique<NmGnbRlsToRrc>(NmGnbRlsToRrc::XN_SIGNAL_DETECTED);
+            z->data = std::move(w.data);
+            m_base->rrcTask->push(std::move(z));
         }
         default: {
             std::cout<<"rls unhandled nts case"<<std::endl;

@@ -107,6 +107,11 @@ class GnbRrcTask : public NtsTask
     /* Connection Control */
     void receiveRrcSetupRequest(int ueId, const ASN_RRC_RRCSetupRequest &msg);
     void receiveRrcSetupComplete(int ueId, const ASN_RRC_RRCSetupComplete &msg);
+
+    //Urwah
+    void createNewConnection(const OctetString& data);
+    void SendNewConnectionReq(int ueId);
+
 };
 
 } // namespace nr::gnb

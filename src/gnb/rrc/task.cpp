@@ -69,6 +69,11 @@ void GnbRrcTask::onLoop()
         case NmGnbNgapToRrc::PAGING:
             handlePaging(w.uePagingTmsi, w.taiListForPaging);
             break;
+        case NmGnbNgapToRrc::XN_CREATE_CONNECTION:
+        {
+            //SendNewConnectionReq(w.ueId);
+            break;
+        }
         }
         break;
     }

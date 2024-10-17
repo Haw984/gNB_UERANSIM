@@ -39,6 +39,8 @@ struct NmGnbRlsToRrc : NtsMessage
     {
         SIGNAL_DETECTED,
         UPLINK_RRC,
+        //Urwah
+        XN_SIGNAL_DETECTED,
     } present;
 
     // SIGNAL_DETECTED
@@ -206,6 +208,7 @@ struct NmGnbNgapToRrc : NtsMessage
         NAS_DELIVERY,
         AN_RELEASE,
         PAGING,
+        XN_CREATE_CONNECTION,
     } present;
 
     // NAS_DELIVERY
@@ -218,6 +221,9 @@ struct NmGnbNgapToRrc : NtsMessage
     // PAGING
     asn::Unique<ASN_NGAP_FiveG_S_TMSI> uePagingTmsi{};
     asn::Unique<ASN_NGAP_TAIListForPaging> taiListForPaging{};
+        //Urwah
+    std::unique_ptr<PduSessionResource> m_pduSession;
+
 
     explicit NmGnbNgapToRrc(PR present) : NtsMessage(NtsMessageType::GNB_NGAP_TO_RRC), present(present)
     {
