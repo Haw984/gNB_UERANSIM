@@ -69,6 +69,21 @@ void GnbRrcTask::onLoop()
         case NmGnbNgapToRrc::PAGING:
             handlePaging(w.uePagingTmsi, w.taiListForPaging);
             break;
+        
+        case NmGnbNgapToRrc::DATA_INFO: {
+            auto m = std::make_unique<NmGnbRrcToRls>(NmGnbRrcToRls::DATA_PDU_INFO);
+            std::cout<<"Ngap to Rrc"<<std::endl;
+            m->m_pduSession = std::move(w.m_pduSession);
+            m->ueId = w.ueId;
+            m->psi = w.psi;
+            m->amfId = w.amfId;
+            auto *ue = findUe(w.ueId);
+            if (!ue)
+                return;
+            m->m_ueCtx = ue;
+            m_base->rlsTask->push(std::move(m));
+            break;
+        }
         }
         break;
     }

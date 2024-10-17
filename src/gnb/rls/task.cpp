@@ -136,6 +136,16 @@ void GnbRlsTask::onLoop()
             m_ctlTask->push(std::move(m));
             break;
         }
+        case NmGnbRrcToRls::DATA_PDU_INFO: {
+            auto m = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::DOWNLINK_SESSION);
+            m->ueId = w.ueId;
+            m->psi = w.psi;
+            m->amfId = w.amfId;
+            m->m_pduSession = std::move(w.m_pduSession);
+            m->m_ueCtx = w.m_ueCtx;
+            m_ctlTask->push(std::move(m));
+            break;
+        }
         }
         break;
     }
@@ -154,11 +164,11 @@ void GnbRlsTask::onLoop()
         }
         break;
     }
-    case NtsMessageType::GNB_NGAP_TO_RLS: {
+    /*case NtsMessageType::GNB_NGAP_TO_RLS: {
         auto &w = dynamic_cast<NmGnbNgapToRls &>(*msg);
         switch (w.present)
         {
-        case NmGnbNgapToRls::DATA_PDU_INFO: {
+        case NmGnbRrcToRls::DATA_PDU_INFO: {
             auto m = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::DOWNLINK_SESSION);
             m->ueId = w.ueId;
             m->psi = w.psi;
@@ -169,7 +179,7 @@ void GnbRlsTask::onLoop()
             m_ctlTask->push(std::move(m));
         }
         }
-    }
+    }*/
     default:
         m_logger->unhandledNts(*msg);
         break;

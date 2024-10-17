@@ -99,18 +99,20 @@ void GnbRrcTask::receiveRrcSetupComplete(int ueId, const ASN_RRC_RRCSetupComplet
         return;
 
     auto setupComplete = msg.criticalExtensions.choice.rrcSetupComplete;
-
     if (msg.criticalExtensions.choice.rrcSetupComplete)
     {
         // Handle received 5G S-TMSI if any
+
         if (msg.criticalExtensions.choice.rrcSetupComplete->ng_5G_S_TMSI_Value)
         {
             ue->sTmsi = std::nullopt;
-
             auto &sTmsiValue = msg.criticalExtensions.choice.rrcSetupComplete->ng_5G_S_TMSI_Value;
             if (sTmsiValue->present == ASN_RRC_RRCSetupComplete_IEs__ng_5G_S_TMSI_Value_PR_ng_5G_S_TMSI)
             {
                 ue->sTmsi = GutiMobileIdentity::FromSTmsi(asn::GetBitStringLong<48>(sTmsiValue->choice.ng_5G_S_TMSI));
+                // Print the full 5G-S-TMSI value
+                std::cout << "sTmsi (5G S-TMSI): " << std::hex << asn::GetBitStringLong<48>(sTmsiValue->choice.ng_5G_S_TMSI) << std::dec << std::endl;
+
             }
             else if (sTmsiValue->present == ASN_RRC_RRCSetupComplete_IEs__ng_5G_S_TMSI_Value_PR_ng_5G_S_TMSI_Part2)
             {
@@ -118,6 +120,10 @@ void GnbRrcTask::receiveRrcSetupComplete(int ueId, const ASN_RRC_RRCSetupComplet
                 {
                     int64_t part2 = asn::GetBitStringLong<9>(sTmsiValue->choice.ng_5G_S_TMSI_Part2);
                     ue->sTmsi = GutiMobileIdentity::FromSTmsi((part2 << 39) | (ue->initialId));
+                    // Print the partial S-TMSI (Part2) and the combined value
+                    std::cout << "sTmsi (Part2): " << std::hex << part2 << std::dec << std::endl;
+                    std::cout << "Combined S-TMSI: " << std::hex << ((part2 << 39) | (ue->initialId)) << std::dec << std::endl;
+
                 }
             }
         }

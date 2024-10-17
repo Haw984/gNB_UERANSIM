@@ -84,7 +84,6 @@ void GtpTask::onLoop()
         switch (w.present)
         {
         case NmGnbRlsToGtp::DATA_PDU_DELIVERY: {
-            std::cout<<"Uplink data!!"<<std::endl;
             handleUplinkData(w.ueId, w.psi, std::move(w.pdu));
             break;
         }

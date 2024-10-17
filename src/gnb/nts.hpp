@@ -116,7 +116,7 @@ struct NmGnbGtpToNgap : NtsMessage
     }
 };
 //Urwah
-struct NmGnbNgapToRls : NtsMessage
+/*struct NmGnbNgapToRls : NtsMessage
 {
     enum PR
     {
@@ -136,7 +136,7 @@ struct NmGnbNgapToRls : NtsMessage
     explicit NmGnbNgapToRls(PR present) : NtsMessage(NtsMessageType::GNB_NGAP_TO_RLS), present(present)
     {
     }
-};
+};*/
 
 struct NmGnbRlsToRls : NtsMessage
 {
@@ -173,6 +173,7 @@ struct NmGnbRlsToRls : NtsMessage
     //Urwah
     std::unique_ptr<PduSessionResource> m_pduSession;
     int amfId;
+    RrcUeContext *m_ueCtx;
 
     // DOWNLINK_DATA
     // DOWNLINK_RRC
@@ -203,12 +204,18 @@ struct NmGnbRrcToRls : NtsMessage
     enum PR
     {
         RRC_PDU_DELIVERY,
+        DATA_PDU_INFO,
     } present;
 
     // RRC_PDU_DELIVERY
     int ueId{};
     rrc::RrcChannel channel{};
     OctetString pdu{};
+    //Urwah
+    int psi{};
+    std::unique_ptr<PduSessionResource> m_pduSession;
+    int amfId;
+    RrcUeContext *m_ueCtx;
 
     explicit NmGnbRrcToRls(PR present) : NtsMessage(NtsMessageType::GNB_RRC_TO_RLS), present(present)
     {
@@ -223,6 +230,8 @@ struct NmGnbNgapToRrc : NtsMessage
         NAS_DELIVERY,
         AN_RELEASE,
         PAGING,
+        //Urwah
+        DATA_INFO,
     } present;
 
     // NAS_DELIVERY
@@ -231,10 +240,19 @@ struct NmGnbNgapToRrc : NtsMessage
 
     // NAS_DELIVERY
     OctetString pdu{};
-
+    //RrcUeContext *m_ueCtx;
     // PAGING
     asn::Unique<ASN_NGAP_FiveG_S_TMSI> uePagingTmsi{};
     asn::Unique<ASN_NGAP_TAIListForPaging> taiListForPaging{};
+
+    //Urwah
+    // DATA_PDU_DELIVERY
+    int psi{};
+    //OctetString pdu{};
+    int amfId{};
+    //Urwah
+    std::unique_ptr<PduSessionResource> m_pduSession;
+
 
     explicit NmGnbNgapToRrc(PR present) : NtsMessage(NtsMessageType::GNB_NGAP_TO_RRC), present(present)
     {

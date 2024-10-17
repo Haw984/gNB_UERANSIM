@@ -20,7 +20,7 @@
 #include <asn/ngap/ASN_NGAP_ProtocolIE-Field.h>
 #include <asn/ngap/ASN_NGAP_RerouteNASRequest.h>
 #include <asn/ngap/ASN_NGAP_UplinkNASTransport.h>
-
+#include <iostream>
 namespace nr::gnb
 {
 
@@ -54,6 +54,7 @@ void NgapTask::handleInitialNasTransport(int ueId, const OctetString &nasPdu, in
     if ((amfCtx->nextStream == 0) && (amfCtx->association.outStreams > 1))
         amfCtx->nextStream += 1;
     ueCtx->uplinkStream = amfCtx->nextStream;
+    std::cout << "Added Determine uplink stream" << ueCtx->uplinkStream <<std::endl;
 
     std::vector<ASN_NGAP_InitialUEMessage_IEs *> ies;
 

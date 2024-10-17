@@ -88,6 +88,8 @@ struct RlsSessionTransmission : RlsMessage
     uint32_t payload{};
     uint32_t amfId{};
     std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
+    nr::gnb::RrcUeContext *m_ueCtx;
+
 
     explicit RlsSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::SESSION_TRANSMISSION, sti)
     {

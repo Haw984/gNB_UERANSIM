@@ -13,6 +13,8 @@
 #include <gnb/app/task.hpp>
 #include <gnb/sctp/task.hpp>
 #include <gnb/rls/task.hpp>
+#include <gnb/rrc/task.hpp>
+
 #include <iostream>
 
 namespace nr::gnb
@@ -101,12 +103,12 @@ void NgapTask::onLoop()
         case NmGnbGtpToNgap::DATA_PDU_INFO: {
             auto *ue = findUeContext(x.ueId);
             std::cout<<"NmGnbGtpToNgap::DATA_PDU_INFO: ue->amfUeNgapId: "<<ue->amfUeNgapId<<std::endl;
-            auto m = std::make_unique<NmGnbNgapToRls>(NmGnbNgapToRls::DATA_PDU_INFO);
+            auto m = std::make_unique<NmGnbNgapToRrc>(NmGnbNgapToRrc::DATA_INFO);
             m->m_pduSession = std::move(x.m_pduSession);
             m->ueId = x.ueId;
             m->psi = x.psi;
-            m->amfId = std::move(static_cast<int>(ue->amfUeNgapId));
-            m_base->rlsTask->push(std::move(m));
+            m->amfId = ue->amfUeNgapId;
+            m_base->rrcTask->push(std::move(m));
             break;
         }
         }

@@ -10,6 +10,42 @@
 #include <utils/constants.hpp>
 #include <iostream>
 #include "asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h"
+#include <gnb/types.hpp>
+
+
+size_t calculateSerializedLength(const nr::gnb::RrcUeContext& ueCtx) {
+    size_t length = 0;
+
+    // ueId: 4 bytes
+    length += sizeof(uint32_t);
+
+    // initialId: 8 bytes
+    length += sizeof(uint64_t);
+
+    // isInitialIdSTmsi: 1 byte
+    length += sizeof(uint8_t);
+
+    // establishmentCause: 8 bytes
+    length += sizeof(uint64_t);
+
+    // sTmsi: 1 byte for presence flag
+    length += sizeof(uint8_t);
+    if (ueCtx.sTmsi.has_value()) {
+        const auto& sTmsi = ueCtx.sTmsi.value();
+
+        // amfRegionId: 1 byte
+        length += sizeof(uint8_t);
+
+        // amfSetId + amfPointer: 2 bytes (10 bits for amfSetId, 6 bits for amfPointer)
+        length += sizeof(uint8_t) * 2;
+
+        // tmsi: 4 bytes
+        length += sizeof(uint8_t) * 4;
+    }
+
+    return length;
+}
+
 
 namespace rls
 {
@@ -68,6 +104,47 @@ void EncodeRlsMessage(const RlsMessage &msg, OctetString &stream)
         stream.appendOctet4(m.pduId);
         stream.appendOctet4(m.payload);
         stream.appendOctet4(m.amfId);
+        
+        // Calculate the total length
+        size_t length = calculateSerializedLength(*m.m_ueCtx);
+
+        // Prepend the length as a 4-byte integer
+        stream.appendOctet4(static_cast<uint32_t>(length));
+
+        // Serialize ueId as a 4-byte integer
+        stream.appendOctet4(static_cast<uint32_t>(m.m_ueCtx->ueId));
+
+        // Serialize initialId as an 8-byte integer
+        stream.appendOctet8(static_cast<uint64_t>(m.m_ueCtx->initialId));
+
+        // Serialize isInitialIdSTmsi as a boolean (1 byte)
+        stream.appendOctet(static_cast<uint8_t>(m.m_ueCtx->isInitialIdSTmsi));
+
+        // Serialize establishmentCause as an 8-byte integer
+        stream.appendOctet8(static_cast<uint64_t>(m.m_ueCtx->establishmentCause));
+
+        // Serialize optional sTmsi
+        if (m.m_ueCtx->sTmsi.has_value()) {
+            stream.appendOctet(static_cast<uint8_t>(1));  // Indicate presence of sTmsi
+
+            const auto& sTmsi = m.m_ueCtx->sTmsi.value();
+
+            // Serialize amfRegionId (assuming it's a 1-byte octet)
+            stream.appendOctet(sTmsi.amfRegionId);
+
+            // Serialize amfSetId (10 bits) - fit into 2 bytes
+            stream.appendOctet(static_cast<uint8_t>(sTmsi.amfSetId >> 2)); // Upper 8 bits
+            stream.appendOctet(static_cast<uint8_t>((sTmsi.amfSetId & 0x03) << 6) | (sTmsi.amfPointer & 0x3F)); // Lower 2 bits of amfSetId and 6 bits of amfPointer
+
+            // Serialize tmsi (octet4), which is 4 bytes
+            stream.appendOctet(sTmsi.tmsi[0]);
+            stream.appendOctet(sTmsi.tmsi[1]);
+            stream.appendOctet(sTmsi.tmsi[2]);
+            stream.appendOctet(sTmsi.tmsi[3]);
+
+        } else {
+            stream.appendOctet(static_cast<uint8_t>(0));  // Indicate absence of sTmsi
+        }
 
 
         //serialize(stream, m_pduSession);
@@ -206,67 +283,3 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
 
 } // namespace rls
 
-
-/*void serialize(OctetString &stream, std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession) {
-    // Serialize the provided ueId and psi
-    stream.appendOctet4(static_cast<uint32_t>(m_pduSession.ueId)); // Serialize ueId
-    stream.appendOctet4(static_cast<uint32_t>(m_pduSession.psi));  // Serialize psi
-
-    // Serialize AggregateMaximumBitRate
-    stream.appendOctet8(m_pduSession.sessionAmbr.dlAmbr); // Serialize dlAmbr
-    stream.appendOctet8(m_pduSession.sessionAmbr.ulAmbr); // Serialize ulAmbr
-
-    // Serialize boolean as a single byte
-    stream.appendOctet(static_cast<uint8_t>(m_pduSession.dataForwardingNotPossible));
-
-    // Serialize PduSessionType as a single byte
-    stream.appendOctet(static_cast<uint8_t>(m_pduSession.sessionType));
-
-    // Serialize GtpTunnel upTunnel
-    stream.appendOctet4(m_pduSession.upTunnel.teid); // Serialize TEID
-    stream.append(m_pduSession.upTunnel.address);    // Serialize address
-
-    // Serialize GtpTunnel downTunnel
-    stream.appendOctet4(m_pduSession.downTunnel.teid); // Serialize TEID
-    stream.append(m_pduSession.downTunnel.address);    // Serialize address
-
-    // Serialize QoS Flows
-    auto &qosList = m_pduSession.qosFlows->list;
-    stream.appendOctet(static_cast<uint8_t>(qosList.count)); // Serialize the number of QoS Flows
-    for (int iQos = 0; iQos < qosList.count; iQos++) {
-        stream.appendOctet(static_cast<uint8_t>(qosList.array[iQos]->qosFlowIdentifier)); // Serialize QoS Flow Identifier
-        // Add serialization for other fields in ASN_NGAP_QosFlowSetupRequestItem if necessary
-    }
-}
-
-size_t calculatePduSessionResourceLength( std::unique_ptr<nr::gnb::PduSessionResource> &resource) {
-    size_t len = 0;
-
-    // Add length of primitive types
-    len += sizeof(uint32_t); // ueId
-    len += sizeof(uint32_t); // psi
-
-    // Add length of AggregateMaximumBitRate
-    len += sizeof(uint64_t); // dlAmbr
-    len += sizeof(uint64_t); // ulAmbr
-
-    // Add length for boolean and PduSessionType
-    len += sizeof(uint8_t); // dataForwardingNotPossible
-    len += sizeof(uint8_t); // sessionType
-
-    // Add length of GtpTunnel
-    len += sizeof(uint32_t); // TEID
-    len += resource.upTunnel.address.length(); // Address length
-
-    len += sizeof(uint32_t); // TEID
-    len += resource.downTunnel.address.length(); // Address length
-
-    // Add length of ASN_NGAP_QosFlowSetupRequestList
-    auto &qosList = resource.qosFlows->list;
-    len += sizeof(uint8_t); // Number of QoS Flows
-    for (int iQos = 0; iQos < qosList.count; iQos++) {
-        len += sizeof(uint8_t); // qosFlowIdentifier
-        // Add length calculation for other fields in ASN_NGAP_QosFlowSetupRequestItem if necessary
-    }
-    return len;
-}*/
