@@ -147,8 +147,8 @@ void GnbRlsTask::onLoop()
         {
             case NmGnbNgapToRls::XN_SESSION_CREATE:{
                 auto l = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::DOWNLINK_XN_DATA);
-                l->m_pduSession = std::unique_ptr<nr::gnb::PduSessionResource>(w.resource);
                 l->ueId = w.ueId;
+                l->psi = w.psi;
                 std::cout<<" GNB_NGAP_TO_RLS received"<<std::endl;
                 m_ctlTask->push(std::move(l));
                 break;

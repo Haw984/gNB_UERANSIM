@@ -151,11 +151,11 @@ void NgapTask::onLoop()
                 std::cout << "w.pdusession address: "<< w.m_pduSession.get()<< std::endl;
 
                 //m_pathSwitchPduSession = nullptr;
-                std::cout<<"m_pathSwitchPduSession address: "<<m_pathSwitchPduSession.get()<<std::endl;
+                std::cout<<"m_pathSwitchPduSession address: "<<m_pathSwitchPduSession<<std::endl;
 
                 //m_pathSwitchPduSession = std::make_unique<nr::gnb::PduSessionResource>(w.m_pduSession->ueId, w.m_pduSession->psi);
-                m_pathSwitchPduSession = std::move(w.m_pduSession);
-                std::cout<<"m_pathSwitchPduSession address: "<<m_pathSwitchPduSession.get()<<std::endl;
+                m_pathSwitchPduSession = w.m_pduSession.release();
+                std::cout<<"m_pathSwitchPduSession address: "<<m_pathSwitchPduSession<<std::endl;
 
                 std::cout<<"m_pathSwitchPduSession ueId: "<<m_pathSwitchPduSession->ueId<<std::endl;
                 std::cout << "m_pathSwitchPduSession Psi: " << m_pathSwitchPduSession->psi << std::endl;

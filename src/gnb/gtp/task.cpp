@@ -16,6 +16,7 @@
 #include <asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h>
 #include <cstdlib>
 #include <string>
+#include <iostream>
 
 namespace nr::gnb
 {
@@ -131,10 +132,34 @@ void GtpTask::handleSessionCreate(PduSessionResource *session)
     m_logger->info("New session created. ");
     uint64_t sessionInd = MakeSessionResInd(session->ueId, session->psi);
     m_pduSessions[sessionInd] = std::unique_ptr<PduSessionResource>(session);
+    std::cout<<"Create function Session->upTunnel.address: ";
+    for (size_t i = 0; i < sizeof(m_pduSessions[sessionInd]->upTunnel.address); ++i) {
+    if (i != 0) {
+        std::cout << ".";
+    }
+    std::cout << static_cast<int>(m_pduSessions[sessionInd]->upTunnel.address.data()[i]);
+    }
+    std::cout << std::endl;
 
+    for (size_t i = 0; i < sizeof(m_pduSessions[sessionInd]->downTunnel.address); ++i) {
+    if (i != 0) {
+        std::cout << ".";
+    }
+    std::cout << static_cast<int>(m_pduSessions[sessionInd]->downTunnel.address.data()[i]);
+    }
+    std::cout << std::endl;
+
+    std::cout<<"New sesion wala function ha: "<<session->downTunnel.teid<<std::endl;
+    std::cout<<"New sesion wala function ha: "<<session->sessionAmbr.ulAmbr<<std::endl;
+    std::cout<<"New sesion wala function ha: "<<session->sessionAmbr.dlAmbr<<std::endl;
+
+    std::cout<<"New sesion wala function ha ueid: "<<session->ueId<<std::endl;
+    std::cout<<"New sesion wala function ha Psi: "<<session->psi<<std::endl;
+    //std::cout<<"New sesion wala function ha sessionInd: "<<session->ueId<<std::endl;
     m_sessionTree.insert(sessionInd, session->downTunnel.teid);
-
+    std::cout<<"New sesion 1"<<std::endl;
     updateAmbrForUe(session->ueId);
+    std::cout<<"New sesion 2"<<std::endl;
     updateAmbrForSession(sessionInd);
 }
 
@@ -194,10 +219,13 @@ void GtpTask::handleUeContextDelete(int ueId)
 void GtpTask::handleUplinkData(int ueId, int psi, OctetString &&pdu)
 {
     const uint8_t *data = pdu.data();
-
+    std::cout<<"Uplink data receive here!!!! "<<std::endl;
     // ignore non IPv4 packets
     if ((data[0] >> 4 & 0xF) != 4)
-        return;
+        {std::cout<<1<<std::endl;
+        return;}
+    std::cout<<"Ueid: "<<ueId<<std::endl;
+    std::cout<<"Psi: "<<psi<<std::endl;
 
     uint64_t sessionInd = MakeSessionResInd(ueId, psi);
 
@@ -216,13 +244,46 @@ void GtpTask::handleUplinkData(int ueId, int psi, OctetString &&pdu)
     }
 
     auto &pduSession = m_pduSessions[sessionInd];
-
+    std::cout<<"pduSession->upTunnel.address: ";
+    for (size_t i = 0; i < sizeof(pduSession->upTunnel.address); ++i) {
+    if (i != 0) {
+        std::cout << ".";
+    }
+    std::cout << static_cast<int>(pduSession->upTunnel.address.data()[i]);
+    }
+    std::cout << std::endl;
+    std::cout<<"pduSession->downTunnel.address: ";
+    for (size_t i = 0; i < sizeof(pduSession->downTunnel.address); ++i) {
+    if (i != 0) {
+        std::cout << ".";
+    }
+    std::cout << static_cast<int>(pduSession->downTunnel.address.data()[i]);
+    }
+    std::cout << std::endl;
     if (m_rateLimiter->allowUplinkPacket(sessionInd, static_cast<int64_t>(pdu.length())))
     {
         gtp::GtpMessage gtp{};
         gtp.payload = std::move(pdu);
         gtp.msgType = gtp::GtpMessage::MT_G_PDU;
         gtp.teid = pduSession->upTunnel.teid;
+        std::cout<<"gtp.teid: "<<gtp.teid<<std::endl;
+        std::cout<<"gtp.teid: "<<pduSession->downTunnel.teid<<std::endl;
+        std::cout<<"pduSession->upTunnel.address: ";
+        for (size_t i = 0; i < sizeof(pduSession->upTunnel.address); ++i) {
+        if (i != 0) {
+            std::cout << ".";
+        }
+        std::cout << static_cast<int>(pduSession->upTunnel.address.data()[i]);
+        }
+        std::cout << std::endl;
+        std::cout<<"pduSession->downTunnel.address: ";
+        for (size_t i = 0; i < sizeof(pduSession->downTunnel.address); ++i) {
+        if (i != 0) {
+            std::cout << ".";
+        }
+        std::cout << static_cast<int>(pduSession->downTunnel.address.data()[i]);
+        }
+        std::cout << std::endl;
 
         auto ul = std::make_unique<gtp::UlPduSessionInformation>();
         // TODO: currently using first QSI
@@ -236,7 +297,17 @@ void GtpTask::handleUplinkData(int ueId, int psi, OctetString &&pdu)
         if (!gtp::EncodeGtpMessage(gtp, gtpPdu))
             m_logger->err("Uplink data failure, GTP encoding failed");
         else
-            m_udpServer->send(InetAddress(pduSession->upTunnel.address, cons::GtpPort), gtpPdu);
+            {std::cout<<3<<std::endl;
+            std::cout<<"pduSession->upTunnel.address: ";
+            for (size_t i = 0; i < sizeof(pduSession->upTunnel.address); ++i) {
+            if (i != 0) {
+                std::cout << ".";
+            }
+            std::cout << static_cast<int>(pduSession->upTunnel.address.data()[i]);
+            }
+            std::cout << std::endl;
+
+            m_udpServer->send(InetAddress(pduSession->upTunnel.address, cons::GtpPort), gtpPdu);}
     }
 }
 
@@ -287,20 +358,28 @@ void GtpTask::handleUdpReceive(const udp::NwUdpServerReceive &msg)
 
 void GtpTask::updateAmbrForUe(int ueId)
 {
+    std::cout<<"New sesion 3"<<std::endl;
     if (!m_ueContexts.count(ueId))
-        return;
-
+        {std::cout<<"UpdateAmbr for Ue not worked!!!!"<<std::endl;
+        return;}
+    std::cout<<"New sesion 5"<<std::endl;
     auto &ue = m_ueContexts[ueId];
+    std::cout<<"UE ALLA de!!! "<<ue->ueAmbr.ulAmbr<<std::endl;
+    std::cout<<"UE ALLA de!!! "<<ue->ueAmbr.dlAmbr<<std::endl;
     m_rateLimiter->updateUeUplinkLimit(ueId, ue->ueAmbr.ulAmbr);
     m_rateLimiter->updateUeDownlinkLimit(ueId, ue->ueAmbr.dlAmbr);
 }
 
 void GtpTask::updateAmbrForSession(uint64_t pduSession)
 {
+    std::cout<<"New sesion 4"<<std::endl;
     if (!m_pduSessions.count(pduSession))
-        return;
-
+        {std::cout<<"UpdateAmbrForSession for Ue not worked!!!!"<<std::endl;
+        return;}
+    std::cout<<"New sesion 6"<<std::endl;
     auto &sess = m_pduSessions[pduSession];
+    std::cout<<"ALLA de!!! "<<sess->sessionAmbr.ulAmbr<<std::endl;
+    std::cout<<"ALLA de!!! "<<sess->sessionAmbr.dlAmbr<<std::endl;
     m_rateLimiter->updateSessionUplinkLimit(pduSession, sess->sessionAmbr.ulAmbr);
     m_rateLimiter->updateSessionDownlinkLimit(pduSession, sess->sessionAmbr.dlAmbr);
 }

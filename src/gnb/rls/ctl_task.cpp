@@ -72,8 +72,8 @@ void RlsControlTask::onLoop()
         case NmGnbRlsToRls::DOWNLINK_XN_DATA:
             {std::cout<<"NmGnbRlsToRls::DOWNLINK_XN_DATA message received"<<std::endl;
             rls::RlsXnSessionTransmission msg{m_sti};
-            msg.m_pduSession = std::move(w.m_pduSession);
-            std::cout<<"msg.m_pduSession->ueId"<<msg.m_pduSession->ueId<<std::endl;
+            msg.pduId = w.ueId;
+            msg.payload = w.psi;
             std::cout<<"w.ueId"<<w.ueId<<std::endl;
 
             m_udpTask->send(w.ueId, msg);
@@ -164,9 +164,22 @@ void RlsControlTask::handleRlsMessage(int ueId, rls::RlsMessage &msg)
         auto w = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SESSION_TRANSMISSION);
         w->ueId = ueId;
         std::cout<<" UEID: "<<m.pduId<<std::endl;
+        std::cout<<" m_pduSession UEID: "<<m.m_pduSession->ueId<<std::endl;
+
         w->psi = m.payload;
         w->amfId = m.amfId;
-        w->m_pduSession = std::move(m.m_pduSession);
+        auto newResource = std::make_unique<nr::gnb::PduSessionResource>(ueId, m.m_pduSession->psi);
+        std::cout<<"newResource->ueId: "<<newResource->ueId<<std::endl;
+        std::cout<<"newResource->psi: "<<newResource->psi<<std::endl;
+        // Copy over the remaining data fields from the old resource
+        newResource->sessionAmbr = std::move(m.m_pduSession->sessionAmbr);
+        newResource->dataForwardingNotPossible = std::move(m.m_pduSession->dataForwardingNotPossible);
+        newResource->sessionType = std::move(m.m_pduSession->sessionType);
+        newResource->upTunnel = std::move(m.m_pduSession->upTunnel);
+        newResource->downTunnel = std::move(m.m_pduSession->downTunnel);
+        newResource->qosFlows = std::move(m.m_pduSession->qosFlows);
+        w->m_pduSession = std::move(newResource);
+        
         w->m_ueSecurityCapability = std::move(m.m_ueSecurityCapability);
         m_mainTask->push(std::move(w));
     }

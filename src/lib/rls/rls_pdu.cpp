@@ -58,62 +58,8 @@ void EncodeRlsMessage(const RlsMessage &msg, OctetString &stream)
     {
         std::cout<<"msg.msgType == EMessageType::XN_SESSION_TRANSMISSION"<<std::endl;
         auto &m = (const RlsXnSessionTransmission &)msg;
-        auto &qosList = m.m_pduSession->qosFlows->list;
-
-        stream.appendOctet4(static_cast<uint32_t>(m.m_pduSession->ueId)); // Serialize ueId
-        stream.appendOctet4(static_cast<uint32_t>(m.m_pduSession->psi));  // Serialize psi
-
-        // Serialize AggregateMaximumBitRate
-        stream.appendOctet8(m.m_pduSession->sessionAmbr.dlAmbr); // Serialize dlAmbr
-        stream.appendOctet8(m.m_pduSession->sessionAmbr.ulAmbr); // Serialize ulAmbr
-
-        // Serialize boolean as a single byte
-        stream.appendOctet(static_cast<uint8_t>(m.m_pduSession->dataForwardingNotPossible));
-
-        // Serialize PduSessionType as a single byte
-        stream.appendOctet(static_cast<uint8_t>(m.m_pduSession->sessionType));
-
-        // Serialize GtpTunnel upTunnel
-        stream.appendOctet4(m.m_pduSession->upTunnel.teid); // Serialize TEID
-
-        stream.appendOctet4(m.m_pduSession->upTunnel.address.length());
-        stream.append(m.m_pduSession->upTunnel.address);    // Serialize address
-        std::cout<<"res->m_pduSession->upTunnel.teid: "<<m.m_pduSession->upTunnel.teid<<std::endl;
-        std::cout << "Size of OctetString object: " << sizeof(m.m_pduSession->upTunnel.address) << " bytes" << std::endl;
-        for (size_t i = 0; i < sizeof(m.m_pduSession->upTunnel.address); ++i) {
-            if (i != 0) {
-                std::cout << ".";
-            }
-            std::cout << static_cast<int>(m.m_pduSession->upTunnel.address.data()[i]);
-        }
-        std::cout << std::endl;
- 
-        // Serialize GtpTunnel downTunnel
-        stream.appendOctet4(m.m_pduSession->downTunnel.teid); // Serialize TEID
-        stream.appendOctet4(m.m_pduSession->downTunnel.address.length());    // Serialize address
-        stream.append(m.m_pduSession->downTunnel.address);    // Serialize address
-        std::cout<<"res->m_pduSession->downTunnel.teid: "<<m.m_pduSession->downTunnel.teid<<std::endl;
-        std::cout << "Size of OctetString object: " << sizeof(m.m_pduSession->downTunnel.address) << " bytes" << std::endl;
-        for (size_t i = 0; i < sizeof(m.m_pduSession->downTunnel.address); ++i) {
-            if (i != 0) {
-                std::cout << ".";
-            }
-            std::cout << static_cast<int>(m.m_pduSession->downTunnel.address.data()[i]);
-        }
-       std::cout<<"GTP Tunnel Address (hex): ";
-        for (size_t i = 0; i < sizeof(m.m_pduSession->downTunnel.address); ++i) {
-            printf("%02x ", m.m_pduSession->downTunnel.address.data()[i]);
-        }
-        std::cout << std::endl;
-
-        stream.appendOctet4(static_cast<int>(qosList.count)); // Serialize the number of QoS Flows
-        std::cout<<"List: "<<static_cast<int>(qosList.count)<<std::endl;
-        for (int iQos = 0; iQos < static_cast<int>(qosList.count); iQos++) {
-            stream.appendOctet4(static_cast<int>(qosList.array[iQos]->qosFlowIdentifier)); // Serialize QoS Flow Identifier
-            std::cout<<"static_cast<int>(qosList.array[iQos]->qosFlowIdentifier)"<<static_cast<int>(qosList.array[iQos]->qosFlowIdentifier)<<std::endl;
-            // Add serialization for other fields in ASN_NGAP_QosFlowSetupRequestItem if necessary
-        }
-
+        stream.appendOctet4(m.pduId);
+        stream.appendOctet4(m.payload);
     }   
 }
 

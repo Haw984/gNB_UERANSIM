@@ -286,18 +286,10 @@ struct NmGnbNgapToRls : NtsMessage
         XN_SESSION_CREATE,
     } present;
 
-    // UE_CONTEXT_UPDATE
-    std::unique_ptr<GtpUeContextUpdate> update{};
-
-    // SESSION_CREATE
-    PduSessionResource *resource{};
 
     // UE_CONTEXT_RELEASE
     // SESSION_RELEASE
     int ueId{};
-    OctetString pdu{};
-
-
     // SESSION_RELEASE
     int psi{};
 

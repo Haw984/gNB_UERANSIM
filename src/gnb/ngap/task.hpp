@@ -61,8 +61,8 @@ class NgapTask : public NtsTask
     bool m_isInitialized;
     //Urwah
     //bool m_pathSwitchReq;
-    std::unique_ptr<nr::gnb::PduSessionResource> m_pathSwitchPduSession;
-    //PduSessionResource *m_pathSwitchPduSession;
+    //std::unique_ptr<nr::gnb::PduSessionResource> m_pathSwitchPduSession;
+    PduSessionResource *m_pathSwitchPduSession;
     int m_pathSwitchReqUeId = 0;
     
 

@@ -211,26 +211,19 @@ void NgapTask::receiveNgSetupResponse(int amfId, ASN_NGAP_NGSetupResponse *msg)
 void NgapTask::receivePSRAck(int amfId, ASN_NGAP_PathSwitchRequestAcknowledge *msg)
 {
     m_logger->debug("Path switch request Acknowledge received");
+    auto *ue = findUeContext(m_pathSwitchPduSession->ueId);
+    auto w = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::UE_CONTEXT_UPDATE);
+    w->update = std::make_unique<GtpUeContextUpdate>(true, ue->ctxId, ue->ueAmbr);
+    m_base->gtpTask->push(std::move(w));
+
     auto m = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::SESSION_CREATE);
     std::cout<<"m_pathSwitchReqUeId: "<<m_pathSwitchReqUeId<<std::endl;
-    auto newResource = std::make_unique<nr::gnb::PduSessionResource>(m_pathSwitchReqUeId, m_pathSwitchPduSession->psi);
-    std::cout<<"newResource->ueId: "<<newResource->ueId<<std::endl;
-    std::cout<<"newResource->psi: "<<newResource->psi<<std::endl;
-    // Copy over the remaining data fields from the old resource
-    newResource->sessionAmbr = std::move(m_pathSwitchPduSession->sessionAmbr);
-    newResource->dataForwardingNotPossible = std::move(m_pathSwitchPduSession->dataForwardingNotPossible);
-    newResource->sessionType = std::move(m_pathSwitchPduSession->sessionType);
-    newResource->upTunnel = std::move(m_pathSwitchPduSession->upTunnel);
-    newResource->downTunnel = std::move(m_pathSwitchPduSession->downTunnel);
-    newResource->qosFlows = std::move(m_pathSwitchPduSession->qosFlows);
-    m_pathSwitchPduSession = std::move(newResource);
-    m->resource = m_pathSwitchPduSession.get(); //m_pathSwitchPduSession.get();  // Get raw pointer
+    m->resource = m_pathSwitchPduSession;
     m_base->gtpTask->push(std::move(m));
 
     auto y = std::make_unique<NmGnbNgapToRls>(NmGnbNgapToRls::XN_SESSION_CREATE);
     y->ueId = m_pathSwitchPduSession->ueId;
-    y->resource = m_pathSwitchPduSession.get();  // Get raw pointer
-    std::cout<<"m_pathSwitchPduSession: "<<m_pathSwitchPduSession->ueId<<std::endl;
+    y->psi = m_pathSwitchPduSession->psi;
     m_base->rlsTask->push(std::move(y));
 
 }
