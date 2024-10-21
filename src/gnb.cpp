@@ -62,6 +62,18 @@ static nr::gnb::GnbConfig *ReadConfigYaml()
 
     if (yaml::HasField(config, "gtpAdvertiseIp"))
         result->gtpAdvertiseIp = yaml::GetIpAddress(config, "gtpAdvertiseIp");
+    if (yaml::HasField(config, "wifi"))
+    {
+	result->wifi = yaml::GetBool(config, "wifi");
+    }
+    if (yaml::HasField(config, "UeInterface"))
+    {
+	result->ueInterface = yaml::GetString(config,"UeInterface");
+    }
+    if (yaml::HasField(config, "nextHopInterface"))
+    {
+        result->interface = yaml::GetString(config,"nextHopInterface");
+    }
 
     result->ignoreStreamIds = yaml::GetBool(config, "ignoreStreamIds");
     result->pagingDrx = EPagingDrx::V128;

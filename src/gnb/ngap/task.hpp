@@ -16,6 +16,9 @@
 #include <lib/app/monitor.hpp>
 #include <utils/logger.hpp>
 #include <utils/nts.hpp>
+//Urwah
+#include <lib/nas/ie4.hpp>
+#include <asn/ngap/ASN_NGAP_PDUSessionResourceToBeSwitchedDLList.h>
 
 extern "C"
 {
@@ -34,6 +37,7 @@ extern "C"
     struct ASN_NGAP_OverloadStop;
     struct ASN_NGAP_PDUSessionResourceReleaseCommand;
     struct ASN_NGAP_Paging;
+    struct ASN_NGAP_PathSwitchRequestAcknowledge;
 }
 
 namespace nr::gnb
@@ -55,12 +59,20 @@ class NgapTask : public NtsTask
     int64_t m_ueNgapIdCounter;
     uint32_t m_downlinkTeidCounter;
     bool m_isInitialized;
+    //Urwah
+    //bool m_pathSwitchReq;
+    //std::unique_ptr<nr::gnb::PduSessionResource> m_pathSwitchPduSession;
+    PduSessionResource *m_pathSwitchPduSession;
+    int m_pathSwitchReqUeId = 0;
+    
 
     friend class GnbCmdHandler;
 
   public:
     explicit NgapTask(TaskBase *base);
     ~NgapTask() override = default;
+    //static std::unique_ptr<nr::gnb::PduSessionResource> m_pathSwitchPduSession;
+
 
   protected:
     void onStart() override;
@@ -85,6 +97,9 @@ class NgapTask : public NtsTask
     void sendNgSetupRequest(int amfId);
     void sendErrorIndication(int amfId, NgapCause cause = NgapCause::Protocol_unspecified, int ueId = 0);
     void receiveNgSetupResponse(int amfId, ASN_NGAP_NGSetupResponse *msg);
+    //Urwah
+    void receivePSRAck(int amfId, ASN_NGAP_PathSwitchRequestAcknowledge *msg);
+
     void receiveNgSetupFailure(int amfId, ASN_NGAP_NGSetupFailure *msg);
     void receiveErrorIndication(int amfId, ASN_NGAP_ErrorIndication *msg);
     void receiveAmfConfigurationUpdate(int amfId, ASN_NGAP_AMFConfigurationUpdate *msg);
@@ -94,6 +109,12 @@ class NgapTask : public NtsTask
     /* Message transport */
     void sendNgapNonUe(int amfId, ASN_NGAP_NGAP_PDU *pdu);
     void sendNgapUeAssociated(int ueId, ASN_NGAP_NGAP_PDU *pdu);
+    //Urwah
+    void sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pdu, const PduSessionResource& pduSessionResource,
+                const nas::IEUeSecurityCapability ueSecurityCapability);
+    //ASN_NGAP_PDUSessionResourceToBeSwitchedDLList PDUSessionResourceToBeSwitchedDLList(const PduSessionResource& pduSessionResource);
+
+
     void handleSctpMessage(int amfId, uint16_t stream, const UniqueBuffer &buffer);
     bool handleSctpStreamId(int amfId, int stream, const ASN_NGAP_NGAP_PDU &pdu);
 
@@ -105,8 +126,10 @@ class NgapTask : public NtsTask
     void deliverDownlinkNas(int ueId, OctetString &&nasPdu);
     void sendNasNonDeliveryIndication(int ueId, const OctetString &nasPdu, NgapCause cause);
     void receiveRerouteNasRequest(int amfId, ASN_NGAP_RerouteNASRequest *msg);
-
-    /* PDU session management */
+    //Urwah
+    void handlePathSwitchRequest(int ueId, int amfId, const PduSessionResource &pduSessionResource, 
+                                        const nas::IEUeSecurityCapability ueSecurityCapability);
+/* PDU session management */
     void receiveSessionResourceSetupRequest(int amfId, ASN_NGAP_PDUSessionResourceSetupRequest *msg);
     void receiveSessionResourceReleaseCommand(int amfId, ASN_NGAP_PDUSessionResourceReleaseCommand *msg);
     std::optional<NgapCause> setupPduSessionResource(NgapUeContext *ue, PduSessionResource *resource);

@@ -12,20 +12,51 @@
 #include <cstdint>
 #include <cstring>
 #include <set>
+#include <unistd.h>
 
 #include <gnb/nts.hpp>
 #include <utils/common.hpp>
 #include <utils/constants.hpp>
 #include <utils/libc_error.hpp>
-
+#include <string>
 #include <iostream>
 static constexpr const int BUFFER_SIZE = 16384;
 
 static constexpr const int LOOP_PERIOD = 1000;
 static constexpr const int RECEIVE_TIMEOUT = 200;
-static constexpr const int HEARTBEAT_THRESHOLD = 2000; // (LOOP_PERIOD + RECEIVE_TIMEOUT)'dan büyük olmalı
+static constexpr const int HEARTBEAT_THRESHOLD = 5000; // (LOOP_PERIOD + RECEIVE_TIMEOUT)'dan büyük olmalı
 
 static constexpr const int MIN_ALLOWED_DBM = -120;
+bool NtsTask::flag = false;
+
+#include <arpa/inet.h>
+#include <cstring>
+#include <stdexcept> // For std::runtime_error
+
+std::string getIPv4AddressString(const InetAddress &inetAddress) {
+  if (inetAddress.getIpVersion() != 4) {
+    return ""; // Not an IPv4 address
+  }
+
+  // Check if getSockAddr returns a null pointer (potential error)
+  const sockaddr *addr = inetAddress.getSockAddr();
+  if (addr == nullptr) {
+    throw std::runtime_error("InetAddress object does not contain a valid address");
+  }
+
+  // Cast to const sockaddr_in* only if the IP version is 4
+  const sockaddr_in *sin = reinterpret_cast<const sockaddr_in *>(addr);
+
+  char ipString[INET_ADDRSTRLEN]; // Buffer to store string address
+  if (inet_ntop(AF_INET, &(sin->sin_addr), ipString, INET_ADDRSTRLEN) == nullptr) {
+    // Handle inet_ntop error (unlikely, but possible)
+    throw std::runtime_error("Error converting address to string");
+  }
+
+  return std::string(ipString);
+}
+
+
 
 static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
 {
@@ -36,19 +67,36 @@ static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
     int distance = static_cast<int>(std::sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ));
     if (distance == 0)
         return -1; // 0 may be confusing for people
-    std::cout<<"rls/udp_task.cpp/:uepos_x:"<<uePos.x<<std::endl;
-    std::cout<<"uepos_y:"<< uePos.y<<std::endl;
-    std::cout<<"uepos_z:"<< uePos.z<<std::endl;
-    std::cout<<"gnbpos_x:"<< myPos.x<<std::endl;
-    std::cout<<"gnbpos_x:"<< myPos.y<<std::endl;
     return -distance;
 }
+
+#include <string>
+#include <cstdlib>
+
+// Function to execute a command
+int execute_command(const std::string& command) {
+    std::cout<<command<<std::endl;
+    return system(command.c_str());
+}
+
+// Function to build the command
+std::string build_command(const std::string& base_cmd, const std::string& mid_cmd,  const std::string& target_network, const std::string& end_cmd) {
+    return base_cmd + mid_cmd + target_network + end_cmd;
+}
+
+// Function to add or delete route
+int route(const std::string& cmd_start, const std::string& cmd_mid, const std::string& target_network, const std::string& end_cmd) {
+    std::string cmd = build_command(cmd_start, cmd_mid, target_network, end_cmd);
+    return execute_command(cmd);
+}
+
 
 namespace nr::gnb
 {
 
-RlsUdpTask::RlsUdpTask(TaskBase *base, uint64_t sti, Vector3 phyLocation)
+RlsUdpTask::RlsUdpTask(TaskBase *base, uint64_t sti, Vector3 phyLocation, bool wifi, std::string ueInterface, std::string interface)
     : m_server{}, m_ctlTask{}, m_sti{sti}, m_phyLocation{phyLocation}, m_lastLoop{}, m_stiToUe{}, m_ueMap{}, m_newIdCounter{}
+    , m_wifi{wifi}, m_ueInterface{ueInterface},m_interface{interface}
 {
     m_logger = base->logBase->makeUniqueLogger("rls-udp");
 
@@ -79,7 +127,6 @@ void RlsUdpTask::onLoop()
 
     uint8_t buffer[BUFFER_SIZE];
     InetAddress peerAddress;
-
     int size = m_server->Receive(buffer, BUFFER_SIZE, RECEIVE_TIMEOUT, peerAddress);
     if (size > 0)
     {
@@ -101,12 +148,52 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
     if (msg->msgType == rls::EMessageType::HEARTBEAT)
     {
         int dbm = EstimateSimulatedDbm(m_phyLocation, ((const rls::RlsHeartBeat &)*msg).simPos);
+	    std::string ipv4Address = getIPv4AddressString(addr);
         if (dbm < MIN_ALLOWED_DBM)
         {
-            // if the simulated signal strength is such low, then ignore this message
+	    if(m_wifi == true)
+	    {
+            if (NtsTask::flag == true)
+            {
+                int status = route("iptables -D FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address," -j ACCEPT");
+                status = route("iptables -D FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j ACCEPT");
+                status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address, " -j DROP");
+                status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j DROP");
+            if (status == 0){
+                m_logger->info("Weak signal power.");
+                m_logger->info("Wifi connection removed.");}
+            }
+            NtsTask::flag = false;
+	    }
             return;
         }
 
+        else if (dbm > MIN_ALLOWED_DBM && m_wifi == true)
+        {
+            if(m_wifi == true)
+            {
+                if (NtsTask::flag == false)
+                {
+                    if(m_interface == "" || m_ueInterface == "")
+                    {
+                        m_logger->err("Interface not provided.");
+                        return;
+                    }
+                    else
+                    {
+                        m_logger->info("Wifi request received.");
+                        int status = system(" iptables -F");
+                        status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface + " -s ", ipv4Address, " -j ACCEPT");
+                        status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface + " -s ", ipv4Address, " -j ACCEPT");
+                        if (status == 0)
+                        {
+                            m_logger->info("Wifi connection successfully established.");
+                        }
+                        NtsTask::flag = true;
+                    }
+                }
+            }
+        }
         if (m_stiToUe.count(msg->sti))
         {
             int ueId = m_stiToUe[msg->sti];
@@ -198,6 +285,7 @@ void RlsUdpTask::send(int ueId, const rls::RlsMessage &msg)
     if (!m_ueMap.count(ueId))
     {
         // ignore the message
+        std::cout<<" Msg is ignored!!!"<<std::endl;
         return;
     }
 

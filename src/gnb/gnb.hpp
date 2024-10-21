@@ -23,6 +23,7 @@ class GNodeB
 {
   private:
     TaskBase *taskBase;
+    bool wifiAP;
 
   public:
     GNodeB(GnbConfig *config, app::INodeListener *nodeListener, NtsTask *cliCallbackTask);

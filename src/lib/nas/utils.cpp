@@ -51,6 +51,8 @@ const char *EnumToString(ERegistrationType v)
         return "Initial Registration";
     case ERegistrationType::MOBILITY_REGISTRATION_UPDATING:
         return "Mobility Registration";
+    case ERegistrationType::PATH_SWITCH_REGISTRATION:
+        return "Path Switch Registration";
     case ERegistrationType::PERIODIC_REGISTRATION_UPDATING:
         return "Periodic Registration";
     case ERegistrationType::EMERGENCY_REGISTRATION:

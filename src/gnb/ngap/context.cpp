@@ -52,14 +52,13 @@
 #include <asn/ngap/ASN_NGAP_UEContextReleaseCommand.h>
 #include <asn/ngap/ASN_NGAP_UEContextReleaseComplete.h>
 #include <asn/ngap/ASN_NGAP_UEContextReleaseRequest.h>
-
+#include <iostream>
 namespace nr::gnb
 {
 
 void NgapTask::receiveInitialContextSetup(int amfId, ASN_NGAP_InitialContextSetupRequest *msg)
 {
     m_logger->debug("Initial Context Setup Request received");
-
     auto *ue = findUeByNgapIdPair(amfId, ngap_utils::FindNgapIdPair(msg));
     if (ue == nullptr)
         return;
@@ -82,6 +81,7 @@ void NgapTask::receiveInitialContextSetup(int amfId, ASN_NGAP_InitialContextSetu
     if (reqIe)
     {
         auto &list = reqIe->PDUSessionResourceSetupListCxtReq.list;
+	std::cout<<"reqIe"<<std::endl;
         for (int i = 0; i < list.count; i++)
         {
             auto &item = list.array[i];
@@ -100,6 +100,7 @@ void NgapTask::receiveInitialContextSetup(int amfId, ASN_NGAP_InitialContextSetu
             auto *ie = asn::ngap::GetProtocolIe(transfer, ASN_NGAP_ProtocolIE_ID_id_PDUSessionAggregateMaximumBitRate);
             if (ie)
             {
+		std::cout<<"ie"<<std::endl;
                 resource->sessionAmbr.dlAmbr =
                     asn::GetUnsigned64(ie->PDUSessionAggregateMaximumBitRate.pDUSessionAggregateMaximumBitRateDL) /
                     8ull;
@@ -136,8 +137,10 @@ void NgapTask::receiveInitialContextSetup(int amfId, ASN_NGAP_InitialContextSetu
             }
 
             auto error = setupPduSessionResource(ue, resource);
+	    std::cout<<"error value:"<<error.has_value()<<std::endl;
             if (error.has_value())
             {
+		std::cout<<"Error wala"<<std::endl;
                 auto *tr = asn::New<ASN_NGAP_PDUSessionResourceSetupUnsuccessfulTransfer>();
                 ngap_utils::ToCauseAsn_Ref(error.value(), tr->cause);
 
@@ -158,7 +161,6 @@ void NgapTask::receiveInitialContextSetup(int amfId, ASN_NGAP_InitialContextSetu
             else
             {
                 auto *tr = asn::New<ASN_NGAP_PDUSessionResourceSetupResponseTransfer>();
-
                 auto &qosList = resource->qosFlows->list;
                 for (int iQos = 0; iQos < qosList.count; iQos++)
                 {
@@ -197,7 +199,6 @@ void NgapTask::receiveInitialContextSetup(int amfId, ASN_NGAP_InitialContextSetu
         deliverDownlinkNas(ue->ctxId, asn::GetOctetString(reqIe->NAS_PDU));
 
     std::vector<ASN_NGAP_InitialContextSetupResponseIEs *> responseIes;
-
     if (!successList.empty())
     {
         auto *ie = asn::New<ASN_NGAP_InitialContextSetupResponseIEs>();
@@ -223,7 +224,7 @@ void NgapTask::receiveInitialContextSetup(int amfId, ASN_NGAP_InitialContextSetu
 
         responseIes.push_back(ie);
     }
-
+   
     auto *response = asn::ngap::NewMessagePdu<ASN_NGAP_InitialContextSetupResponse>(responseIes);
     sendNgapUeAssociated(ue->ctxId, response);
 }
@@ -231,7 +232,6 @@ void NgapTask::receiveInitialContextSetup(int amfId, ASN_NGAP_InitialContextSetu
 void NgapTask::receiveContextRelease(int amfId, ASN_NGAP_UEContextReleaseCommand *msg)
 {
     m_logger->debug("UE Context Release Command received");
-
     auto *ue = findUeByNgapIdPair(amfId, ngap_utils::FindNgapIdPairFromUeNgapIds(msg));
     if (ue == nullptr)
         return;

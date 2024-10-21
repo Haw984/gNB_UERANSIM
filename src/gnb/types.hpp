@@ -318,7 +318,12 @@ struct GnbConfig
     /* Assigned by program */
     std::string name{};
     EPagingDrx pagingDrx{};
+
+    /* Edited by Urwah */
     Vector3 phyLocation{};
+    std::string ueInterface{};
+    bool wifi;
+    std::string interface{};
 
     [[nodiscard]] inline uint32_t getGnbId() const
     {

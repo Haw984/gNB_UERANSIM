@@ -44,6 +44,9 @@ enum class NtsMessageType
     GNB_NGAP_TO_RRC,
     GNB_RRC_TO_NGAP,
     GNB_NGAP_TO_GTP,
+    //Urwah
+    GNB_RLS_TO_NGAP,
+    GNB_NGAP_TO_RLS,
     GNB_SCTP,
 
     UE_APP_TO_TUN,
@@ -126,6 +129,7 @@ class NtsTask
 
   public:
     NtsTask() = default;
+    static bool flag;
 
     virtual ~NtsTask() = default;
 
@@ -133,6 +137,7 @@ class NtsTask
     bool pushFront(std::unique_ptr<NtsMessage> &&msg);
     bool setTimer(int timerId, int64_t delayMs);
     bool setTimerAbsolute(int timerId, int64_t timeMs);
+    
 
   protected:
     std::unique_ptr<NtsMessage> poll();

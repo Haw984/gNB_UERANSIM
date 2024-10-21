@@ -26,6 +26,7 @@ GNodeB::GNodeB(GnbConfig *config, app::INodeListener *nodeListener, NtsTask *cli
     base->logBase = new LogBase("logs/" + config->name + ".log");
     base->nodeListener = nodeListener;
     base->cliCallbackTask = cliCallbackTask;
+    GNodeB::wifiAP = base->config->wifi;
 
     base->appTask = new GnbAppTask(base);
     base->sctpTask = new SctpTask(base);
@@ -60,12 +61,20 @@ GNodeB::~GNodeB()
 
 void GNodeB::start()
 {
+    if(!GNodeB::wifiAP)
+    {
     taskBase->appTask->start();
     taskBase->sctpTask->start();
     taskBase->ngapTask->start();
     taskBase->rrcTask->start();
     taskBase->rlsTask->start();
     taskBase->gtpTask->start();
+    }
+    else
+    {
+	taskBase->appTask->start();
+	taskBase->rlsTask->start();
+    }
 }
 
 void GNodeB::pushCommand(std::unique_ptr<app::GnbCliCommand> cmd, const InetAddress &address)

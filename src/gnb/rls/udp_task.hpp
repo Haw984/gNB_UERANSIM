@@ -40,9 +40,12 @@ class RlsUdpTask : public NtsTask
     std::unordered_map<uint64_t, int> m_stiToUe;
     std::unordered_map<int, UeInfo> m_ueMap;
     int m_newIdCounter;
+    bool m_wifi;
+    std::string m_ueInterface{};
+    std::string m_interface{};
 
   public:
-    explicit RlsUdpTask(TaskBase *base, uint64_t sti, Vector3 phyLocation);
+    explicit RlsUdpTask(TaskBase *base, uint64_t sti, Vector3 phyLocation, bool m_wifi, std::string m_ueInterface, std::string m_interface);
     ~RlsUdpTask() override = default;
 
   protected:
@@ -54,7 +57,6 @@ class RlsUdpTask : public NtsTask
     void receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::RlsMessage> &&msg);
     void sendRlsPdu(const InetAddress &addr, const rls::RlsMessage &msg);
     void heartbeatCycle(int64_t time);
-
   public:
     void initialize(NtsTask *ctlTask);
     void send(int ueId, const rls::RlsMessage &msg);

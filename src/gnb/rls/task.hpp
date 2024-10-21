@@ -25,6 +25,7 @@
 
 namespace nr::gnb
 {
+class NgapTask;
 
 class GnbRlsTask : public NtsTask
 {
@@ -36,12 +37,14 @@ class GnbRlsTask : public NtsTask
     RlsControlTask *m_ctlTask;
 
     uint64_t m_sti;
+    int m_wifiCounter;
 
     friend class GnbCmdHandler;
 
   public:
     explicit GnbRlsTask(TaskBase *base);
     ~GnbRlsTask() override = default;
+    int status;
 
   protected:
     void onStart() override;

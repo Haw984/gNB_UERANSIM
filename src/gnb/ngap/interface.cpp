@@ -14,6 +14,7 @@
 #include <gnb/app/task.hpp>
 #include <gnb/rrc/task.hpp>
 #include <gnb/sctp/task.hpp>
+#include <gnb/types.hpp>
 
 #include <asn/ngap/ASN_NGAP_AMFConfigurationUpdate.h>
 #include <asn/ngap/ASN_NGAP_AMFConfigurationUpdateFailure.h>
@@ -30,7 +31,10 @@
 #include <asn/ngap/ASN_NGAP_ServedGUAMIItem.h>
 #include <asn/ngap/ASN_NGAP_SliceSupportItem.h>
 #include <asn/ngap/ASN_NGAP_SupportedTAItem.h>
+#include <gnb/gtp/task.hpp>  
+#include <gnb/rls/task.hpp>
 
+#include <iostream>
 namespace nr::gnb
 {
 
@@ -201,6 +205,27 @@ void NgapTask::receiveNgSetupResponse(int amfId, ASN_NGAP_NGSetupResponse *msg)
 
         m_base->rrcTask->push(std::make_unique<NmGnbNgapToRrc>(NmGnbNgapToRrc::RADIO_POWER_ON));
     }
+}
+
+//Urwah
+void NgapTask::receivePSRAck(int amfId, ASN_NGAP_PathSwitchRequestAcknowledge *msg)
+{
+    m_logger->debug("Path switch request Acknowledge received");
+    auto *ue = findUeContext(m_pathSwitchPduSession->ueId);
+    auto w = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::UE_CONTEXT_UPDATE);
+    w->update = std::make_unique<GtpUeContextUpdate>(true, ue->ctxId, ue->ueAmbr);
+    m_base->gtpTask->push(std::move(w));
+
+    auto m = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::SESSION_CREATE);
+    std::cout<<"m_pathSwitchReqUeId: "<<m_pathSwitchReqUeId<<std::endl;
+    m->resource = m_pathSwitchPduSession;
+    m_base->gtpTask->push(std::move(m));
+
+    auto y = std::make_unique<NmGnbNgapToRls>(NmGnbNgapToRls::XN_SESSION_CREATE);
+    y->ueId = m_pathSwitchPduSession->ueId;
+    y->psi = m_pathSwitchPduSession->psi;
+    m_base->rlsTask->push(std::move(y));
+
 }
 
 void NgapTask::receiveNgSetupFailure(int amfId, ASN_NGAP_NGSetupFailure *msg)
