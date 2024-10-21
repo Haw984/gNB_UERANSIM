@@ -29,9 +29,8 @@ void GnbRrcTask::handleRlsSapMessage(NmGnbRlsToRrc &msg)
     }
     //Urwah  
     case NmGnbRlsToRrc::SIGNAL_LOST: {
-        m_logger->debug("UE[%d] signal lost (by Urwah)", msg.ueId);
-        //releaseConnection(msg.ueId);
-        handleRadioLinkFailure(msg.ueId, msg.psi);
+        m_logger->debug("UE[%d] signal lost", msg.ueId);
+        handleSignalLost(msg.ueId, msg.psi);
         break;
     }
     
