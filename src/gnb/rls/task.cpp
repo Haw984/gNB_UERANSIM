@@ -101,20 +101,11 @@ void GnbRlsTask::onLoop()
             break;
         }
         case NmGnbRlsToRls::SESSION_CHANGE:{
-            
-            /*auto m = std::make_unique<NmGnbRlsToRrc>(NmGnbRlsToRrc::SIGNAL_LOST);
-            m->ueId = w.ueId;
-            m_base->rrcTask->push(std::move(m));*/
             std::cout<<"task.cpp psi : "<< w.psi<<std::endl;
             auto m = std::make_unique<NmGnbRlsToGtp>(NmGnbRlsToGtp::DATA_PDU_RELEASE);
             m->ueId = w.ueId;
             m->psi = w.psi;
             m_base->gtpTask->push(std::move(m));
-
-            /*auto x = std::make_unique<NmGnbRlsToRrc>(NmGnbRlsToRrc::SIGNAL_LOST);
-            x->ueId = w.ueId;
-            m_base->rrcTask->push(std::move(x));*/
-        
         }
         default: {
             m_logger->unhandledNts(*msg);

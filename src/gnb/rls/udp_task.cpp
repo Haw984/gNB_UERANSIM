@@ -167,21 +167,6 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
             }
             else
             {
-                /*if (m_stiToUe.count(msg->sti))
-                {
-                    m_logger->info("Lost signal power (by Urwah)");
-                    int ueId = m_stiToUe[msg->sti];
-                    // Remove UE from tracking maps
-                    m_stiToUe.erase(msg->sti);
-                    m_ueMap.erase(ueId);
-
-                    //Notify that the signal is lost
-                    auto w= std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SIGNAL_LOST);
-                    w->ueId = ueId;
-                    //w->msg = std::move(msg);
-                    m_ctlTask->push(std::move(w));
-                    
-                }*/
                 if (m_stiToUe.count(msg->sti))
                 {
                     int ueId = m_stiToUe[msg->sti];

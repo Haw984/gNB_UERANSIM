@@ -89,27 +89,25 @@ void GtpTask::onLoop()
             break;
         }
         case NmGnbRlsToGtp::DATA_PDU_RELEASE: {
+            if (!m_ueContexts.count(w.ueId))
+            {
+                m_logger->err("PDU session resource could not be changed, UE context with ID[%d] not found", w.ueId);
+                return;
+            }
             std::cout<<"Message received from rls to gtp: "<<w.ueId<<"  "<<w.psi<<std::endl;
             auto m = std::make_unique<NmGnbGtpToNgap>(NmGnbGtpToNgap::DATA_PDU_INFO);
             uint64_t sessionInd = MakeSessionResInd(w.ueId, w.psi);
             m->ueId = w.ueId;
             m->psi = w.psi;
             m->m_pduSession = std::move(m_pduSessions[sessionInd]);
-            std::cout<<"m_pduSession: "<< m->m_pduSession->downTunnel.teid << std::endl;
             m_base->ngapTask->push(std::move(m));
             auto it = std::find(NtsTask::ueIdPsi.ueIdList.begin(), NtsTask::ueIdPsi.ueIdList.end(), w.ueId);
             if (it != NtsTask::ueIdPsi.ueIdList.end())
             {
-                // Find the index of the element to be removed
                 int index = std::distance(NtsTask::ueIdPsi.ueIdList.begin(), it);
-
-                // Erase the element from both ueIdList and uePsiList at the corresponding index
-                NtsTask::ueIdPsi.ueIdList.erase(it);  // Remove from ueIdList
+                NtsTask::ueIdPsi.ueIdList.erase(it); 
                 NtsTask::ueIdPsi.uePsiList.erase(NtsTask::ueIdPsi.uePsiList.begin() + index);  // Remove from uePsiList 
             }
-            
-            //handleSessionRelease(w.ueId, w.psi);
-
             break;
         }
         }
@@ -154,14 +152,6 @@ void GtpTask::handleSessionCreate(PduSessionResource *session)
     }
     uint64_t sessionInd = MakeSessionResInd(session->ueId, session->psi);
     m_pduSessions[sessionInd] = std::unique_ptr<PduSessionResource>(session);
-    if (m_pduSessions[sessionInd] > 0)
-    {
-        std::cout<< "Bahra hoa ha baby2!!!"<<std::endl;
-    }
-    else{
-        std::cout<<"khali ha londay2"<<std::endl;
-
-    }
     m_sessionTree.insert(sessionInd, session->downTunnel.teid);
 
     updateAmbrForUe(session->ueId);
@@ -245,11 +235,24 @@ void GtpTask::handleUplinkData(int ueId, int psi, OctetString &&pdu)
         gtp.payload = std::move(pdu);
         gtp.msgType = gtp::GtpMessage::MT_G_PDU;
         gtp.teid = pduSession->upTunnel.teid;
-        std::cout<<"!!!!!!!!!!!!!!!!Session teid!!!!!!!!!!!!!!: "<<gtp.teid<<std::endl;
+        for (size_t i = 0; i < sizeof(pduSession->upTunnel.address); ++i) {
+        if (i != 0) {
+            std::cout << ".";
+        }
+        std::cout << static_cast<int>(pduSession->upTunnel.address.data()[i]);
+        }
+        std::cout << std::endl;
+
+        for (size_t i = 0; i < sizeof(pduSession->downTunnel.address); ++i) {
+        if (i != 0) {
+            std::cout << ".";
+        }
+        std::cout << static_cast<int>(pduSession->downTunnel.address.data()[i]);
+        }
+        std::cout << std::endl;
         auto ul = std::make_unique<gtp::UlPduSessionInformation>();
         // TODO: currently using first QSI
         ul->qfi = static_cast<int>(pduSession->qosFlows->list.array[0]->qosFlowIdentifier);
-        std::cout<<"QFI: "<<ul->qfi << std::endl;
         auto cont = std::make_unique<gtp::PduSessionContainerExtHeader>();
         cont->pduSessionInformation = std::move(ul);
         gtp.extHeaders.push_back(std::move(cont));
