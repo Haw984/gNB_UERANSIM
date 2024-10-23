@@ -11,7 +11,6 @@
 #include <utils/constants.hpp>
 #include "asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h"
 
-#include <iostream>
 
 namespace rls
 {
@@ -56,7 +55,6 @@ void EncodeRlsMessage(const RlsMessage &msg, OctetString &stream)
     //Urwah
     else if (msg.msgType == EMessageType::XN_SESSION_TRANSMISSION)
     {
-        std::cout<<"msg.msgType == EMessageType::XN_SESSION_TRANSMISSION"<<std::endl;
         auto &m = (const RlsXnSessionTransmission &)msg;
         stream.appendOctet4(m.pduId);
         stream.appendOctet4(m.payload);
@@ -133,34 +131,13 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
 
         // Read GtpTunnel upTunnel
         res->m_pduSession->upTunnel.teid = stream.read4UI();
-        std::cout<<"res->m_pduSession->upTunnel.teid: "<<res->m_pduSession->upTunnel.teid<<std::endl;
         res->m_pduSession->upTunnel.address = stream.readOctetString(stream.read4I());
-        std::cout << "Size of OctetString object: " << sizeof(res->m_pduSession->upTunnel.address) << " bytes" << std::endl;
-        // Assuming m.m_pduSession->upTunnel.address is an OctetString
-        for (size_t i = 0; i < sizeof(res->m_pduSession->upTunnel.address); ++i) {
-            if (i != 0) {
-                std::cout << ".";
-            }
-            std::cout << static_cast<int>(res->m_pduSession->upTunnel.address.data()[i]);
-        }
-        std::cout << std::endl;
-
 
         // Read GtpTunnel downTunnel
         res->m_pduSession->downTunnel.teid = stream.read4UI();
-        std::cout<<"res->m_pduSession->downTunnel.teid: "<<res->m_pduSession->downTunnel.teid<<std::endl;
         res->m_pduSession->downTunnel.address = stream.readOctetString(stream.read4I());
-        std::cout << "Size of OctetString object: " << sizeof(res->m_pduSession->downTunnel.address) << " bytes" << std::endl;
-        for (size_t i = 0; i < sizeof(res->m_pduSession->downTunnel.address); ++i) {
-            if (i != 0) {
-                std::cout << ".";
-            }
-            std::cout << static_cast<int>(res->m_pduSession->downTunnel.address.data()[i]);
-        }
-        std::cout << std::endl;
         // Read QoS Flows
         int qosFlowCount = stream.read4I();
-        std::cout<<"List: "<<qosFlowCount<<std::endl;
         // Use the asn::Unique constructor to convert the raw pointer returned by asn::New into a unique_ptr
         asn::Unique<ASN_NGAP_QosFlowSetupRequestList> newQosFlows(asn::New<ASN_NGAP_QosFlowSetupRequestList>());
 
@@ -171,20 +148,11 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
         for (int iQos = 0; iQos < static_cast<int>(qosFlowCount); iQos++) {
             // Store the raw pointer in the array
             res->m_pduSession->qosFlows->list.array[iQos]->qosFlowIdentifier = stream.read4I();
-            std::cout<<"res->m_pduSession->qosFlows->list.array[iQos]->qosFlowIdentifier: "<<res->m_pduSession->qosFlows->list.array[iQos]->qosFlowIdentifier<<std::endl;
         }
         res->m_pduSession->qosFlows->list.count = qosFlowCount;
 
         nas::IEUeSecurityCapability ueSecCap = nas::IEUeSecurityCapability::Decode( stream, 4);
         res->m_ueSecurityCapability = std::move(ueSecCap);
-        // Now `ueSecCap` contains the decoded security capability fields
-        // and you can use it as needed in the further processing
-        std::cout << "Decoded UE Security Capability: " << std::endl;
-        std::cout << "5G_EA0: " << static_cast<int>(ueSecCap.b_5G_EA0) << std::endl;
-        std::cout << "128_5G_EA1: " << static_cast<int>(ueSecCap.b_128_5G_EA1) << std::endl;
-        // Output other fields similarly
-        std::cout<<" Decoding is running@@@"<<std::endl;
-
         return res;
 
     }

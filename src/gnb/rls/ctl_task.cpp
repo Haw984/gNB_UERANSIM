@@ -10,7 +10,6 @@
 
 #include <stdexcept>
 #include <utils/common.hpp>
-#include <iostream>
 
 static constexpr const size_t MAX_PDU_COUNT = 4096;
 static constexpr const int MAX_PDU_TTL = 3000;
@@ -70,14 +69,13 @@ void RlsControlTask::onLoop()
             handleDownlinkRrcDelivery(w.ueId, w.pduId, w.rrcChannel, std::move(w.data));
             break;
         case NmGnbRlsToRls::DOWNLINK_XN_DATA:
-            {std::cout<<"NmGnbRlsToRls::DOWNLINK_XN_DATA message received"<<std::endl;
+            {
             rls::RlsXnSessionTransmission msg{m_sti};
             msg.pduId = w.ueId;
             msg.payload = w.psi;
-            std::cout<<"w.ueId"<<w.ueId<<std::endl;
-
             m_udpTask->send(w.ueId, msg);
-            break;}
+            break;
+            }
         default:
             m_logger->unhandledNts(*msg);
             break;
@@ -159,19 +157,13 @@ void RlsControlTask::handleRlsMessage(int ueId, rls::RlsMessage &msg)
     }
     else if (msg.msgType == rls::EMessageType::SESSION_TRANSMISSION)
     {
-        std::cout<<"Pohnch gya ha msg ctl_task tk!!"<<std::endl;
         auto &m = (rls::RlsSessionTransmission &)msg;
         auto w = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SESSION_TRANSMISSION);
         w->ueId = ueId;
-        std::cout<<" UEID: "<<m.pduId<<std::endl;
-        std::cout<<" m_pduSession UEID: "<<m.m_pduSession->ueId<<std::endl;
-
         w->psi = m.payload;
         w->amfId = m.amfId;
+
         auto newResource = std::make_unique<nr::gnb::PduSessionResource>(ueId, m.m_pduSession->psi);
-        std::cout<<"newResource->ueId: "<<newResource->ueId<<std::endl;
-        std::cout<<"newResource->psi: "<<newResource->psi<<std::endl;
-        // Copy over the remaining data fields from the old resource
         newResource->sessionAmbr = std::move(m.m_pduSession->sessionAmbr);
         newResource->dataForwardingNotPossible = std::move(m.m_pduSession->dataForwardingNotPossible);
         newResource->sessionType = std::move(m.m_pduSession->sessionType);
