@@ -13,7 +13,6 @@
 #include <gnb/ngap/task.hpp>
 #include <utils/common.hpp>
 #include <utils/random.hpp>
-#include <iostream>
 #include <cstring> 
 #include <unistd.h>
 
@@ -101,9 +100,9 @@ void GnbRlsTask::onLoop()
             m->m_pduSession = std::move(w.m_pduSession);
             m->m_ueSecurityCapability = std::move(w.m_ueSecurityCapability);
             m_base->ngapTask->push(std::move(m));
+            break;
         }
         default: {
-            std::cout<<"rls unhandled nts case"<<std::endl;
             m_logger->unhandledNts(*msg);
             break;
         }
@@ -149,12 +148,11 @@ void GnbRlsTask::onLoop()
                 auto l = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::DOWNLINK_XN_DATA);
                 l->ueId = w.ueId;
                 l->psi = w.psi;
-                std::cout<<" GNB_NGAP_TO_RLS received"<<std::endl;
                 m_ctlTask->push(std::move(l));
                 break;
             }
         }
- 
+        break;
     }
 
     default:

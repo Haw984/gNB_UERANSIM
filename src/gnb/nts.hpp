@@ -76,8 +76,6 @@ struct NmGnbGtpToRls : NtsMessage
     enum PR
     {
         DATA_PDU_DELIVERY,
-        //Urwah
-        DATA_PDU_RELEASE,
     } present;
 
     // DATA_PDU_DELIVERY
@@ -178,7 +176,6 @@ struct NmGnbRlsToNgap : NtsMessage
     enum PR
     {
         PACKET_SWITCH_REQUEST,
-        PATH_SWITCH_REQUEST_ACK
     } present;
 
     // RRC_PDU_DELIVERY

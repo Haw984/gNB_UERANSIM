@@ -36,7 +36,6 @@
 #include <asn/asn1c/OCTET_STRING.h>
 #include <gnb/gtp/task.hpp>
 
-#include <iostream>
 
 #define MAX_LIST_SIZE 100 // Define an appropriate size based on your needs
 
@@ -73,13 +72,8 @@ void NgapTask::handleInitialNasTransport(int ueId, const OctetString &nasPdu, in
     if ((amfCtx->nextStream == 0) && (amfCtx->association.outStreams > 1))
         amfCtx->nextStream += 1;
     ueCtx->uplinkStream = amfCtx->nextStream;
-
     std::vector<ASN_NGAP_InitialUEMessage_IEs *> ies;
 
-    //if (ASN_NGAP_InitialUEMessage_IEs__value_PR_RRCEstablishmentCause == "TAI_CHANGE_IN_ATT_UPD")
-    //{
-    //std::cout<<"ngap->nas.cpp, ASN_NGAP_InitialUEMessage_IEs__value_PR_RRCEstablishmentCause == TAI_CHANGE_IN_ATT_UPD"<<std::endl;
-    //}
     auto *ieEstablishmentCause = asn::New<ASN_NGAP_InitialUEMessage_IEs>();
     ieEstablishmentCause->id = ASN_NGAP_ProtocolIE_ID_id_RRCEstablishmentCause;
     ieEstablishmentCause->criticality = ASN_NGAP_Criticality_ignore;
@@ -237,14 +231,8 @@ void NgapTask::handlePathSwitchRequest(int ueId, int amfId, const PduSessionReso
     // Ensure UE context exists
     if (!m_ueCtx.count(ueId))
     {
-        m_logger->info("UE context[%d] does not exist", ueId);
         createUeContext(ueId);
-        //auto *ueCtx = findUeContext(ueId);
-        //ueCtx->amfUeNgapId = ueCtx->associatedAmfId;
     }
-    std::cout << "Added createUeContext to list" << std::endl;
-    std::cout<< "amfId: "<<amfId<<std::endl;
-
     auto *ueCtx = findUeContext(ueId);
     if (ueCtx == nullptr)
     {
@@ -254,25 +242,20 @@ void NgapTask::handlePathSwitchRequest(int ueId, int amfId, const PduSessionReso
     if (ueCtx->amfUeNgapId == -1)
     {
         ueCtx->amfUeNgapId = amfId;
-        std::cout<<"~~~~~~~~~~~~~~~~~~~~~~ue->amfUeNgapId == -1~~~~~~~~~~~~~~"<<std::endl;
-
     }
     auto *amfCtx = findAmfContext(ueCtx->associatedAmfId);
-    std::cout<< "ue->amfUeNgapId: "<< amfCtx->ctxId<<std::endl;
 
     if (amfCtx == nullptr || amfCtx->state != EAmfState::CONNECTED)
     {
         m_logger->err("AMF context not found or not connected for UE[%d]", ueId);
         return;
     }
-    std::cout << "Added findAmfContext to list" << std::endl;
 
     // Determine uplink stream
     amfCtx->nextStream = (amfCtx->nextStream + 1) % amfCtx->association.outStreams;
     if (amfCtx->nextStream == 0 && amfCtx->association.outStreams > 1)
         amfCtx->nextStream += 1;
     ueCtx->uplinkStream = amfCtx->nextStream;
-    std::cout << "Added Determine uplink stream" << std::endl;
 
     auto w = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::UE_CONTEXT_UPDATE);
     ueCtx->ueAmbr.dlAmbr = pduSessionResource.sessionAmbr.dlAmbr;
@@ -287,7 +270,6 @@ void NgapTask::handlePathSwitchRequest(int ueId, int amfId, const PduSessionReso
     pdu->choice.initiatingMessage->procedureCode = ASN_NGAP_ProcedureCode_id_PathSwitchRequest;
     pdu->choice.initiatingMessage->criticality = ASN_NGAP_Criticality_reject;
     pdu->choice.initiatingMessage->value.present = ASN_NGAP_InitiatingMessage__value_PR_PathSwitchRequest;
-    std::cout << "Added ASN_NGAP_NGAP_PDU" << std::endl;
  
     // Send the prepared Path Switch Request
     sendNgapUeAssociatedPathSwitchReq(ueId, pdu, pduSessionResource, ueSecurityCapability);
