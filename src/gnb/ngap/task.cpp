@@ -13,7 +13,6 @@
 #include <gnb/app/task.hpp>
 #include <gnb/sctp/task.hpp>
 #include <gnb/rls/task.hpp>
-#include <iostream>
 
 namespace nr::gnb
 {
@@ -98,18 +97,18 @@ void NgapTask::onLoop()
         auto &x = dynamic_cast<NmGnbGtpToNgap &>(*msg);    
         switch (x.present)
         { 
-        case NmGnbGtpToNgap::DATA_PDU_INFO: {
-            auto *ue = findUeContext(x.ueId);
-            std::cout<<"NmGnbGtpToNgap::DATA_PDU_INFO: ue->amfUeNgapId: "<<ue->amfUeNgapId<<std::endl;
-            auto m = std::make_unique<NmGnbNgapToRls>(NmGnbNgapToRls::DATA_PDU_INFO);
-            m->m_pduSession = std::move(x.m_pduSession);
-            m->ueId = x.ueId;
-            m->psi = x.psi;
-            m->amfId = std::move(static_cast<int>(ue->amfUeNgapId));
-            m_base->rlsTask->push(std::move(m));
-            break;
+            case NmGnbGtpToNgap::DATA_PDU_INFO: {
+                auto *ue = findUeContext(x.ueId);
+                auto m = std::make_unique<NmGnbNgapToRls>(NmGnbNgapToRls::DATA_PDU_INFO);
+                m->m_pduSession = std::move(x.m_pduSession);
+                m->ueId = x.ueId;
+                m->psi = x.psi;
+                m->amfId = std::move(static_cast<int>(ue->amfUeNgapId));
+                m_base->rlsTask->push(std::move(m));
+                break;
+            }
         }
-        }
+        break;
     }
     default: {
         m_logger->unhandledNts(*msg);

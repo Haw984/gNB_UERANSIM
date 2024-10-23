@@ -15,7 +15,8 @@
 
 #include <asn/ngap/ASN_NGAP_FiveG-S-TMSI.h>
 #include <asn/ngap/ASN_NGAP_Paging.h>
-#include <iostream>
+
+
 namespace nr::gnb
 {
 
@@ -25,7 +26,6 @@ void NgapTask::handleRadioLinkFailure(int ueId)
     auto w = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::UE_CONTEXT_RELEASE);
     w->ueId = ueId;
     m_base->gtpTask->push(std::move(w));
-    std::cout<<" Release of handleRadioLinkFailure"<<std::endl;
     // Notify AMF
     sendContextRelease(ueId, NgapCause::RadioNetwork_radio_connection_with_ue_lost);
 }
@@ -63,7 +63,6 @@ void NgapTask::handleSignalLost(int ueId, int psi)
     auto *ue = findUeContext(ueId);
     if (ue == nullptr)
         return;
-    std::cout<<1<<std::endl;
     auto w = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::UE_CONTEXT_RELEASE);
     w->ueId = ueId;
     m_base->gtpTask->push(std::move(w));

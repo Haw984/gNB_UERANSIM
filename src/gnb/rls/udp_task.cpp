@@ -19,7 +19,12 @@
 #include <utils/constants.hpp>
 #include <utils/libc_error.hpp>
 #include <string>
-#include <iostream>
+
+#include <arpa/inet.h>
+#include <cstring>
+#include <stdexcept> 
+
+#include <cstdlib>
 static constexpr const int BUFFER_SIZE = 16384;
 
 static constexpr const int LOOP_PERIOD = 1000;
@@ -28,10 +33,6 @@ static constexpr const int HEARTBEAT_THRESHOLD = 5000; // (LOOP_PERIOD + RECEIVE
 
 static constexpr const int MIN_ALLOWED_DBM = -120;
 bool NtsTask::flag = false;
-
-#include <arpa/inet.h>
-#include <cstring>
-#include <stdexcept> // For std::runtime_error
 
 std::string getIPv4AddressString(const InetAddress &inetAddress) {
   if (inetAddress.getIpVersion() != 4) {
@@ -56,8 +57,6 @@ std::string getIPv4AddressString(const InetAddress &inetAddress) {
   return std::string(ipString);
 }
 
-
-
 static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
 {
     int deltaX = myPos.x - uePos.x;
@@ -70,12 +69,8 @@ static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
     return -distance;
 }
 
-#include <string>
-#include <cstdlib>
-
 // Function to execute a command
 int execute_command(const std::string& command) {
-    std::cout<<command<<std::endl;
     return system(command.c_str());
 }
 
@@ -118,12 +113,12 @@ void RlsUdpTask::onStart()
 
 void RlsUdpTask::onLoop()
 {
-    /*auto current = utils::CurrentTimeMillis();
+    auto current = utils::CurrentTimeMillis();
     if (current - m_lastLoop > LOOP_PERIOD)
     {
         m_lastLoop = current;
         heartbeatCycle(current);
-    }*/
+    }
 
     uint8_t buffer[BUFFER_SIZE];
     InetAddress peerAddress;
@@ -173,6 +168,7 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
                     auto it = std::find(releaseUeid.begin(), releaseUeid.end(), ueId);
                     if (it != releaseUeid.end())
                     {
+                        return;
                     }
                     else
                     {
@@ -194,26 +190,27 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
         else if (dbm > MIN_ALLOWED_DBM && m_wifi == true)
         {
             if(m_wifi == true)
-                {
+            {
                 if (NtsTask::flag == false)
-            {
-            if(m_interface == "" || m_ueInterface == "")
-            {
-            m_logger->err("Interface not provided.");
-            return;
-            }
-            else{
-            m_logger->info("Wifi request received.");
-                    int status = system(" iptables -F");
-            status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface + " -s ", ipv4Address, " -j ACCEPT");
-            status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface + " -s ", ipv4Address, " -j ACCEPT");
-                    if (status == 0)
-            {
-                    m_logger->info("Wifi connection successfully established.");
+                {
+                    if(m_interface == "" || m_ueInterface == "")
+                    {
+                        m_logger->err("Interface not provided.");
+                        return;
                     }
-                NtsTask::flag = true;
-            }
-            }
+                    else
+                    {
+                        m_logger->info("Wifi request received.");
+                        int status = system(" iptables -F");
+                        status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface + " -s ", ipv4Address, " -j ACCEPT");
+                        status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface + " -s ", ipv4Address, " -j ACCEPT");
+                        if (status == 0)
+                        {
+                            m_logger->info("Wifi connection successfully established.");
+                        }
+                        NtsTask::flag = true;
+                    }
+                }
             }
         }
         if (m_stiToUe.count(msg->sti))

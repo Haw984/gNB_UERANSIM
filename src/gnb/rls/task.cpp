@@ -12,7 +12,6 @@
 #include <gnb/rrc/task.hpp>
 #include <utils/common.hpp>
 #include <utils/random.hpp>
-#include <iostream>
 #include <cstring> 
 #include <unistd.h>
 
@@ -61,15 +60,10 @@ void GnbRlsTask::onLoop()
             {
                 if (NtsTask::flag == true && m_wifiCounter > 15)
                 {
-                    /*int status = delete_static_route(m_base->config->sessionIp, m_base->config->nextHop, m_base->config->interface);
-                    if (status == 0){
-                    m_logger->info("Wifi connection removed.");
-                    }*/
                     m_wifiCounter=0;
                 }
                 m_wifiCounter++;
             }
-            m_logger->debug("UE[%d] signal lost", w.ueId);
             auto x = std::make_unique<NmGnbRlsToRrc>(NmGnbRlsToRrc::SIGNAL_LOST);
             x->ueId = w.ueId;
             x->psi = w.psi;
@@ -101,11 +95,11 @@ void GnbRlsTask::onLoop()
             break;
         }
         case NmGnbRlsToRls::SESSION_CHANGE:{
-            std::cout<<"task.cpp psi : "<< w.psi<<std::endl;
             auto m = std::make_unique<NmGnbRlsToGtp>(NmGnbRlsToGtp::DATA_PDU_RELEASE);
             m->ueId = w.ueId;
             m->psi = w.psi;
             m_base->gtpTask->push(std::move(m));
+            break;
         }
         default: {
             m_logger->unhandledNts(*msg);
@@ -155,11 +149,11 @@ void GnbRlsTask::onLoop()
             m->psi = w.psi;
             m->amfId = w.amfId;
             m->m_pduSession = std::move(w.m_pduSession);
-            //std::cout<<"Encoder: m->amfId: "<<w.amfId<<std::endl;
-
             m_ctlTask->push(std::move(m));
+            break;
         }
         }
+        break;
     }
     default:
         m_logger->unhandledNts(*msg);

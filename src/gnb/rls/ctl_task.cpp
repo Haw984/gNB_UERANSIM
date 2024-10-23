@@ -10,7 +10,6 @@
 
 #include <stdexcept>
 #include <utils/common.hpp>
-#include <iostream>
 
 static constexpr const size_t MAX_PDU_COUNT = 4096;
 static constexpr const int MAX_PDU_TTL = 3000;
@@ -74,12 +73,11 @@ void RlsControlTask::onLoop()
             handleDownlinkSessionDelivery(w.ueId, w.psi, w.amfId, std::move(w.m_pduSession));
             break;
         case NmGnbRlsToRls::SESSION_CHANGE:{
-            std::cout<<"ctl_task.cpp psi : "<< w.psi<<std::endl;
             auto m= std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SESSION_CHANGE);
             m->ueId = w.ueId;
             m->psi = w.psi;
             m_mainTask->push(std::move(m));
-        
+            break;        
         }
         default:
             m_logger->unhandledNts(*msg);
@@ -120,7 +118,6 @@ void RlsControlTask::handleSignalDetected(int ueId)
 
 void RlsControlTask::handleSignalLost(int ueId, int psi)
 {
-    std::cout<<"ctl_task: "<<psi<<std::endl;
     auto w = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SIGNAL_LOST);
     w->ueId = ueId;
     w->psi = psi;
@@ -165,7 +162,6 @@ void RlsControlTask::handleRlsMessage(int ueId, rls::RlsMessage &msg)
     }
     else if (msg.msgType == rls::EMessageType::RELEASE_SESSION)
     {
-        std::cout<<"Pohnch gya ha msg ctl_task tk msg.msgType == rls::EMessageType::RELEASE_SESSION!!"<<std::endl;
         auto &m = (rls::RlsTerminateSession &)msg;
         auto w = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SIGNAL_LOST);
         w->ueId = m.pduId;
@@ -227,7 +223,6 @@ void RlsControlTask::handleDownlinkRrcDelivery(int ueId, uint32_t pduId, rrc::Rr
 void RlsControlTask::handleDownlinkSessionDelivery(int ueId, int psi, int amfId, std::unique_ptr<PduSessionResource> m_pduSession)
 {
     rls::RlsSessionTransmission msg{m_sti};
-    //msg.pduType = rls::EPduType::SESSION;
     msg.m_pduSession = std::move(m_pduSession);
     msg.payload = static_cast<uint32_t>(psi);
     msg.pduId = static_cast<uint32_t>(ueId);
