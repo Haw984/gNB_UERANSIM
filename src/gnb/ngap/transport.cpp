@@ -150,7 +150,6 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
         return;
     }
 
-    std::cout<<"1 \n";
     if (!pduList->list.array) {
         m_logger->err("Failed to allocate memory for PDUSessionResourceToBeSwitchedDLList");
         return;
@@ -161,7 +160,6 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
         m_logger->err("Failed to allocate memory for PDUSessionResourceToBeSwitchedDLItem");
         return;
     }
-    std::cout<<"2 \n";
     item->pDUSessionID = pduSessionResource.psi;
 
     // Initialize PathSwitchRequestTransfer
@@ -170,7 +168,6 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
         m_logger->err("Failed to allocate memory for PathSwitchRequestTransfer");
         return;
     }
-    std::cout<<"3 \n";
     pathSwitchRequestTransfer->dL_NGU_UP_TNLInformation.present = ASN_NGAP_UPTransportLayerInformation_PR_gTPTunnel;
     pathSwitchRequestTransfer->dL_NGU_UP_TNLInformation.choice.gTPTunnel = asn::New<ASN_NGAP_GTPTunnel>();
     // Access the GTP Tunnel directly from pathSwitchRequestTransfer
@@ -189,18 +186,8 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
     }
 
     asn::SetBitString(gTPTunnel->transportLayerAddress, address);
-    // Logging transport layer address
-    // Log the transport layer address, treating it as a sequence of bytes
-    std::cout << "Transport Layer Address (interpreted as bytes):";
-    for (size_t i = 0; i < gTPTunnel->transportLayerAddress.size; ++i) {
-        std::cout << static_cast<int>(gTPTunnel->transportLayerAddress.buf[i]) << " ";
-    }
-    std::cout << std::endl;
-
     asn::SetOctetString4(gTPTunnel->gTP_TEID, (octet4)pduSessionResource.downTunnel.teid);
-    // Log the TEID for debugging
-    std::cout << "GTP TEID: " << pduSessionResource.downTunnel.teid << std::endl;
-    std::cout<<"5 \n";
+ 
     
     // Access the QosFlowAcceptedList directly from pathSwitchRequestTransfer
     ASN_NGAP_QosFlowAcceptedList &qosFlowAcceptedList = pathSwitchRequestTransfer->qosFlowAcceptedList;
@@ -223,7 +210,6 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
         return;
     }
 
-    std::cout << "QoS Flow Accepted List count: " << qosFlowAcceptedList.list.count << std::endl;
 
     // Add QoS Flow Accepted Items
     for (int i = 0; i < pduSessionResource.qosFlows->list.count; ++i) {
@@ -234,62 +220,27 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
         auto *acceptedItem = asn::New<ASN_NGAP_QosFlowAcceptedItem>();
         if (!acceptedItem) {
             m_logger->err("Failed to allocate memory for QosFlowAcceptedItem");
-            std::cerr << "Failed to allocate memory for QoS Flow Accepted Item at index " << i << std::endl;
             return;
         }
 
         // Copy QoS Flow Identifier
         acceptedItem->qosFlowIdentifier = qosFlowSetupRequestItem.qosFlowIdentifier;
 
-        std::cout << "Adding QoS Flow Accepted Item at index " << i 
-                << " with QoS Flow Identifier: " << static_cast<int>(acceptedItem->qosFlowIdentifier) << std::endl;
-
         // Add to list using memcpy
         qosFlowAcceptedList.list.array[i] = static_cast<ASN_NGAP_QosFlowAcceptedItem *>(malloc(sizeof(ASN_NGAP_QosFlowAcceptedItem)));
         if (!qosFlowAcceptedList.list.array[i]) {
             m_logger->err("Failed to allocate memory for QosFlowAcceptedItem in the list");
-            std::cerr << "Failed to allocate memory for QoS Flow Accepted Item in list at index " << i << std::endl;
             return;
         }
         *qosFlowAcceptedList.list.array[i] = *acceptedItem;
-        //std::memcpy(qosFlowAcceptedList.list.array[i], acceptedItem, sizeof(ASN_NGAP_QosFlowAcceptedItem));
-        //ASN_SEQUENCE_ADD(&qosFlowAcceptedList.list, acceptedItem);
 
-        // Verify the item was added correctly
         if (qosFlowAcceptedList.list.array[i] == nullptr) {
-            std::cerr << "Added null QoS Flow Accepted Item at index " << i << std::endl;
             return;
-        } else {
-            std::cout << "Successfully added QoS Flow Accepted Item at index " << i << std::endl;
         }
 
         // Free the temporary acceptedItem
         free(acceptedItem);
     }
-
-
-
-    // Check if there are any QoS flows in the list
-    if (qosFlowAcceptedList.list.count > 0) {
-        std::cout << "Final QoS Flow Accepted List in pathSwitchRequestTransfer:" << std::endl;
-        
-        // Loop through each QoS Flow Accepted Item in the list
-        for (int i = 0; i < qosFlowAcceptedList.list.count; ++i) {
-            ASN_NGAP_QosFlowAcceptedItem* acceptedItem = qosFlowAcceptedList.list.array[i];
-            if (acceptedItem) {
-                // Print the QoS Flow Identifier
-                std::cout << "QoS Flow Accepted Item " << i << " - QoS Flow Identifier: "
-                        << static_cast<int>(qosFlowAcceptedList.list.array[i]->qosFlowIdentifier) << std::endl;
-            } else {
-                std::cerr << "Error: Null QoS Flow Accepted Item at index " << i << std::endl;
-            }
-        }
-    } else {
-        std::cout << "No QoS Flow Accepted Items found in pathSwitchRequestTransfer" << std::endl;
-    }
-
-
-    std::cout << "QoS Flow Accepted List successfully populated." << std::endl;
 
     char error_buffer[128]; // Buffer to store error message
     size_t error_buffer_size = sizeof(error_buffer);
@@ -302,7 +253,6 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
     );
 
     if (constraint_check != 0) {
-        std::cerr << "Constraint violation during encoding: " << error_buffer << std::endl;
         return;
     }
 
@@ -313,29 +263,16 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
         return;
     }
     asn::SetOctetString(item->pathSwitchRequestTransfer, OctetString::FromArray(pathSwitchRequestTransfer_buffer, encoded_length));
-    std::cout << "Encoded octetString.buf (hex):";
-
-    std::cout << "Encoded OCTET_STRING (hex):";
-    for (size_t i = 0; i < item->pathSwitchRequestTransfer.size; ++i) {
-        std::cout << std::hex << static_cast<int>(item->pathSwitchRequestTransfer.buf[i]) << " ";
-    }
-    std::cout << std::dec << std::endl;
     free(pathSwitchRequestTransfer);
 
 
     pduList->list.array[0] = item;
     pduList->list.count = 1;
 
-    std::cout << "Added PDUSessionResourceToBeSwitchedDLItem to list" << std::endl;
-
-
-
-
     // Find UE and AMF contexts
     auto *ue = findUeContext(ueId);
     if (ue == nullptr)
     {
-        std::cout << "UE context not found, freeing PDU" << std::endl;
         asn::Free(asn_DEF_ASN_NGAP_NGAP_PDU, pdu);
         return;
     }
@@ -353,7 +290,6 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
             *pdu, asn_DEF_ASN_NGAP_RAN_UE_NGAP_ID, ASN_NGAP_ProtocolIE_ID_id_RAN_UE_NGAP_ID,
             FindCriticalityOfUserIe(pdu, ASN_NGAP_ProtocolIE_ID_id_RAN_UE_NGAP_ID),
             [ue](void *mem) { *reinterpret_cast<ASN_NGAP_RAN_UE_NGAP_ID_t *>(mem) = ue->ranUeNgapId; });
-        std::cout<<"ue->ranUeNgapId: "<<ue->ranUeNgapId<<std::endl;
         // AMF UE NGAP ID
         if (ue->amfUeNgapId > 0)
         {
@@ -364,7 +300,6 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
                     asn::SetSigned64(ue->amfUeNgapId, id);
                 });
         }
-        std::cout << "Completed handling of UE and AMF contexts" << std::endl;
 
         asn::ngap::AddProtocolIeIfUsable(
             *pdu, asn_DEF_ASN_NGAP_UserLocationInformation, ASN_NGAP_ProtocolIE_ID_id_UserLocationInformation,
@@ -382,7 +317,6 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
                 asn::SetOctetString3(nr->tAI.tAC, octet3{m_base->config->tac});
                 asn::SetOctetString4(*nr->timeStamp, octet4{utils::CurrentTimeStamp().seconds32()});
             });
-        std::cout << "Completed handling of asn_DEF_ASN_NGAP_UserLocationInformation" << std::endl;
 
     // Add UE Security Capabilities IE
     asn::ngap::AddProtocolIeIfUsable(*pdu, asn_DEF_ASN_NGAP_UESecurityCapabilities, 
@@ -405,10 +339,6 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
                                 (ueSecurityCapability.b_5G_EA6 << 1) |
                                 (ueSecurityCapability.b_5G_EA7);
 
-        // Populate the next byte if required for further encryption algorithms (if supported)
-        // encryptionAlgorithms[1] |= (additional encryption algorithm bits);
-
-        // Populate the NR integrity protection algorithms (e.g., IA0, 128-IA1, etc.)
         integrityProtectionAlgorithms[0] |= (ueSecurityCapability.b_5G_IA0 << 7) |
                                             (ueSecurityCapability.b_128_5G_IA1 << 6) |
                                             (ueSecurityCapability.b_128_5G_IA2 << 5) |
@@ -436,11 +366,6 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
         secCap.nRintegrityProtectionAlgorithms.size = sizeof(integrityProtectionAlgorithms);
         secCap.nRintegrityProtectionAlgorithms.bits_unused = 0;
 
-        // Optionally, if the system uses EUTRA (LTE) encryption and integrity algorithms, allocate and set them similarly
-        // Example:
-        // secCap.eUTRAencryptionAlgorithms.buf = ...;
-        // secCap.eUTRAintegrityProtectionAlgorithms.buf = ...;
-
     });
 
 
@@ -451,14 +376,7 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
             auto *list = reinterpret_cast<ASN_NGAP_PDUSessionResourceToBeSwitchedDLList *>(mem);
             *list = *pduList;
         });
-        //free(octetString);
-
-        std::cout << "Completed handling of asn_DEF_ASN_NGAP_PDUSessionResourceToBeSwitchedDLList" << std::endl;
-
-
     }
-    std::cout << "Completed handling of ASN_NGAP_UESecurityCapabilities_t" << std::endl;
-
      /* Encode and send the PDU */
 
     char errorBuffer[1024];
@@ -476,7 +394,6 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
         m_logger->err("NGAP APER encoding failed");
     else
     {
-        std::cout << "Completed handling of asn_check_constraints" << std::endl;
         auto msg = std::make_unique<NmGnbSctp>(NmGnbSctp::SEND_MESSAGE);
         msg->clientId = amf->ctxId;
         msg->stream = ue->uplinkStream;
@@ -491,12 +408,8 @@ void NgapTask::sendNgapUeAssociatedPathSwitchReq(int ueId, ASN_NGAP_NGAP_PDU *pd
                                              app::ConnectionType::NGAP, xer);
             }
         }
-        std::cout << "Completed else statement" << std::endl;
 
     }
-    //asn::Free(asn_DEF_ASN_NGAP_PDUSessionResourceToBeSwitchedDLList, pduList);
-    //asn::Free(asn_DEF_ASN_NGAP_PDUSessionResourceToBeSwitchedDLItem, item);
-    //free(pduList->list.array);
     asn::Free(asn_DEF_ASN_NGAP_NGAP_PDU, pdu);
 
 }

@@ -19,7 +19,9 @@
 #include <utils/constants.hpp>
 #include <utils/libc_error.hpp>
 #include <string>
-#include <iostream>
+#include <arpa/inet.h>
+#include <cstring>
+#include <stdexcept>
 static constexpr const int BUFFER_SIZE = 16384;
 
 static constexpr const int LOOP_PERIOD = 1000;
@@ -29,9 +31,6 @@ static constexpr const int HEARTBEAT_THRESHOLD = 5000; // (LOOP_PERIOD + RECEIVE
 static constexpr const int MIN_ALLOWED_DBM = -120;
 bool NtsTask::flag = false;
 
-#include <arpa/inet.h>
-#include <cstring>
-#include <stdexcept> // For std::runtime_error
 
 std::string getIPv4AddressString(const InetAddress &inetAddress) {
   if (inetAddress.getIpVersion() != 4) {
@@ -75,7 +74,6 @@ static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
 
 // Function to execute a command
 int execute_command(const std::string& command) {
-    std::cout<<command<<std::endl;
     return system(command.c_str());
 }
 
@@ -285,7 +283,6 @@ void RlsUdpTask::send(int ueId, const rls::RlsMessage &msg)
     if (!m_ueMap.count(ueId))
     {
         // ignore the message
-        std::cout<<" Msg is ignored!!!"<<std::endl;
         return;
     }
 

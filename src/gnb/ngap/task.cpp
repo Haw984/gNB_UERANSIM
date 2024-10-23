@@ -12,9 +12,7 @@
 
 #include <gnb/app/task.hpp>
 #include <gnb/sctp/task.hpp>
-#include <iostream>
 #include <gnb/gtp/task.hpp>  
-//std::unique_ptr<nr::gnb::PduSessionResource> nr::gnb::NgapTask::m_pathSwitchPduSession = nullptr;
 namespace nr::gnb
 {
 
@@ -80,7 +78,6 @@ void NgapTask::onLoop()
             handleAssociationSetup(w.clientId, w.associationId, w.inStreams, w.outStreams);
             break;
         case NmGnbSctp::RECEIVE_MESSAGE:
-	    std::cout<<"Receive Message task.cpp"<<std::endl;
             handleSctpMessage(w.clientId, w.stream, w.buffer);
             break;
         case NmGnbSctp::ASSOCIATION_SHUTDOWN:
@@ -98,96 +95,15 @@ void NgapTask::onLoop()
         switch (w.present)
         {
             case NmGnbRlsToNgap::PACKET_SWITCH_REQUEST: {
-                std::cout<<"$$$$$$$NGAP pohnch gya$$$$$$$$$$$"<<std::endl;
-                //m_pathSwitchReq = true;
-                std::cout << "Ueid: " << w.m_pduSession->ueId << std::endl;
-                std::cout << "Psi: " << w.m_pduSession->psi << std::endl;
-                if (w.m_pduSession) {
-                    std::cout << "m_pduSession is valid." << std::endl;
-                } else {
-                    std::cerr << "m_pduSession is nullptr!" << std::endl;
-                    return;  // Prevent further operations that would cause a crash
-                }
-
-                if (m_pathSwitchPduSession) {
-                    std::cerr << "m_pathSwitchPduSession is not initialized or has been moved!" << std::endl;
-                    //m_pathSwitchPduSession = std::make_unique<nr::gnb::PduSessionResource>(w.m_pduSession->ueId, w.m_pduSession->psi);
-                }
-                std::cout << "downTunnel TEID: " << w.m_pduSession->downTunnel.teid << std::endl;
-                std::cout << "upTunnel TEID: " << w.m_pduSession->upTunnel.teid << std::endl;
-
-                //m_pathSwitchPduSession = std::make_unique<nr::gnb::PduSessionResource>(w.m_pduSession->ueId, w.m_pduSession->psi);
-                std::cout << "downTunnel TEID: " << w.m_pduSession->downTunnel.teid << std::endl;
-                std::cout << "upTunnel TEID: " << w.m_pduSession->upTunnel.teid << std::endl;
-                for (size_t i = 0; i < sizeof( w.m_pduSession->downTunnel.address); ++i) {
-                    if (i != 0) {
-                        std::cout << ".";
-                    }
-                    std::cout << static_cast<int>( w.m_pduSession->downTunnel.address.data()[i]);
-                }
                 std::string gtpIp = m_base->config->gtpAdvertiseIp.value_or(m_base->config->gtpIp);
                 w.m_pduSession->downTunnel.address = utils::IpToOctetString(gtpIp);
                 w.m_pduSession->downTunnel.teid = ++m_downlinkTeidCounter;
-
-                // Print downTunnel TEID
-                std::cout << "downTunnel TEID: " << w.m_pduSession->downTunnel.teid << std::endl;
-                std::cout << "upTunnel TEID: " << w.m_pduSession->upTunnel.teid << std::endl;
-                std::cout << "downTunnel address: "<< std::endl;
-
-                for (size_t i = 0; i < sizeof( w.m_pduSession->downTunnel.address); ++i) {
-                    if (i != 0) {
-                        std::cout << ".";
-                    }
-                    std::cout << static_cast<int>( w.m_pduSession->downTunnel.address.data()[i]);
-                }
-                std::cout << "upTunnel address: "<< std::endl;
-
-                for (size_t i = 0; i < sizeof( w.m_pduSession->upTunnel.address); ++i) {
-                    if (i != 0) {
-                        std::cout << ".";
-                    }
-                    std::cout << static_cast<int>( w.m_pduSession->upTunnel.address.data()[i]);
-                }
-                std::cout << "w.pdusession address: "<< w.m_pduSession.get()<< std::endl;
-
-                //m_pathSwitchPduSession = nullptr;
-                std::cout<<"m_pathSwitchPduSession address: "<<m_pathSwitchPduSession<<std::endl;
-
-                //m_pathSwitchPduSession = std::make_unique<nr::gnb::PduSessionResource>(w.m_pduSession->ueId, w.m_pduSession->psi);
                 m_pathSwitchPduSession = w.m_pduSession.release();
-                std::cout<<"m_pathSwitchPduSession address: "<<m_pathSwitchPduSession<<std::endl;
-
-                std::cout<<"m_pathSwitchPduSession ueId: "<<m_pathSwitchPduSession->ueId<<std::endl;
-                std::cout << "m_pathSwitchPduSession Psi: " << m_pathSwitchPduSession->psi << std::endl;
-
-                std::cout << "m_pathSwitchPduSession downTunnel TEID: " << m_pathSwitchPduSession->downTunnel.teid << std::endl;
-                std::cout << "m_pathSwitchPduSession upTunnel TEID: " << m_pathSwitchPduSession->upTunnel.teid << std::endl;
-                for (size_t i = 0; i < sizeof( m_pathSwitchPduSession->downTunnel.address); ++i) {
-                    if (i != 0) {
-                        std::cout << ".";
-                    }
-                    std::cout << static_cast<int>( m_pathSwitchPduSession->downTunnel.address.data()[i]);
-                }
-                std::cout << "upTunnel address: "<< std::endl;
-
-                for (size_t i = 0; i < sizeof( m_pathSwitchPduSession->upTunnel.address); ++i) {
-                    if (i != 0) {
-                        std::cout << ".";
-                    }
-                    std::cout << static_cast<int>( m_pathSwitchPduSession->upTunnel.address.data()[i]);
-                }
-                std::cout<<"m_pathSwitchPduSession: "<<m_pathSwitchPduSession->ueId<<std::endl;
-                auto &qosList = m_pathSwitchPduSession->qosFlows->list;
-                std::cout<<"m_pathSwitchPduSession List: "<<static_cast<int>(qosList.count)<<std::endl;
                 handlePathSwitchRequest(w.ueId, w.amfId, *m_pathSwitchPduSession, w.m_ueSecurityCapability);
                 break;
             }
-            case NmGnbRlsToNgap::PATH_SWITCH_REQUEST_ACK: {
-                m_logger->info("Path switch request acknowledgement received");
-                break;
-            }
-
         }
+        break;
     }
     default: {        
         m_logger->unhandledNts(*msg);

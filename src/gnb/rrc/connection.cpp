@@ -35,7 +35,7 @@
 #include <asn/rrc/ASN_RRC_UL-DCCH-Message.h>
 #include <asn/rrc/ASN_RRC_ULInformationTransfer-IEs.h>
 #include <asn/rrc/ASN_RRC_ULInformationTransfer.h>
-#include <iostream>
+
 namespace nr::gnb
 {
 
@@ -59,19 +59,16 @@ void GnbRrcTask::receiveRrcSetupRequest(int ueId, const ASN_RRC_RRCSetupRequest 
 
     if (msg.rrcSetupRequest.ue_Identity.present == ASN_RRC_InitialUE_Identity_PR_ng_5G_S_TMSI_Part1)
     {
-        std::cout<<"msg.rrcSetupRequest.ue_Identity.present == ASN_RRC_InitialUE_Identity_PR_ng_5G_S_TMSI_Part1"<<std::endl;
         ue->initialId = asn::GetBitStringLong<39>(msg.rrcSetupRequest.ue_Identity.choice.ng_5G_S_TMSI_Part1);
         ue->isInitialIdSTmsi = true;
     }
     else
     {
-        std::cout<<"else statement: msg.rrcSetupRequest.ue_Identity.present != ASN_RRC_InitialUE_Identity_PR_ng_5G_S_TMSI_Part1"<<std::endl;
         ue->initialId = asn::GetBitStringLong<39>(msg.rrcSetupRequest.ue_Identity.choice.randomValue);
         ue->isInitialIdSTmsi = false;
     }
 
     ue->establishmentCause = static_cast<int64_t>(msg.rrcSetupRequest.establishmentCause);
-    std::cout<<"ue->establishmentCause: " <<ue->establishmentCause<<std::endl;
     // Prepare RRC Setup
     auto *pdu = asn::New<ASN_RRC_DL_CCCH_Message>();
     pdu->message.present = ASN_RRC_DL_CCCH_MessageType_PR_c1;

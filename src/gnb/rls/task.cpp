@@ -13,7 +13,6 @@
 #include <gnb/ngap/task.hpp>
 #include <utils/common.hpp>
 #include <utils/random.hpp>
-#include <iostream>
 #include <cstring> 
 #include <unistd.h>
 
@@ -58,12 +57,8 @@ void GnbRlsTask::onLoop()
         }
         case NmGnbRlsToRls::SIGNAL_LOST: {
 	    if (m_base->config->wifi == true && NtsTask::flag == true && m_wifiCounter > 15){
-	    m_logger->debug("UE[%d] signal lost", w.ueId);
-	    /*int status = delete_static_route(m_base->config->sessionIp, m_base->config->nextHop, m_base->config->interface);
-	    if (status == 0){
-		m_logger->info("Wifi connection removed.");
-	    }*/
-	    m_wifiCounter=0;
+            m_logger->debug("UE[%d] signal lost", w.ueId);
+            m_wifiCounter=0;
 	    }
 	    m_wifiCounter++;
             break;
@@ -93,7 +88,6 @@ void GnbRlsTask::onLoop()
             break;
         }
         case NmGnbRlsToRls::SESSION_TRANSMISSION: {
-            //auto &m = (rls::RlsSessionTransmission &)msg;
             auto m = std::make_unique<NmGnbRlsToNgap>(NmGnbRlsToNgap::PACKET_SWITCH_REQUEST);
             m->ueId = w.ueId;
             m->psi = w.psi;
@@ -101,9 +95,9 @@ void GnbRlsTask::onLoop()
             m->m_pduSession = std::move(w.m_pduSession);
             m->m_ueSecurityCapability = std::move(w.m_ueSecurityCapability);
             m_base->ngapTask->push(std::move(m));
+            break;
         }
         default: {
-            std::cout<<"rls unhandled nts case"<<std::endl;
             m_logger->unhandledNts(*msg);
             break;
         }
@@ -149,12 +143,11 @@ void GnbRlsTask::onLoop()
                 auto l = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::DOWNLINK_XN_DATA);
                 l->ueId = w.ueId;
                 l->psi = w.psi;
-                std::cout<<" GNB_NGAP_TO_RLS received"<<std::endl;
                 m_ctlTask->push(std::move(l));
                 break;
             }
         }
- 
+        break;
     }
 
     default:

@@ -34,7 +34,6 @@
 #include <gnb/gtp/task.hpp>  
 #include <gnb/rls/task.hpp>
 
-#include <iostream>
 namespace nr::gnb
 {
 
@@ -210,14 +209,12 @@ void NgapTask::receiveNgSetupResponse(int amfId, ASN_NGAP_NGSetupResponse *msg)
 //Urwah
 void NgapTask::receivePSRAck(int amfId, ASN_NGAP_PathSwitchRequestAcknowledge *msg)
 {
-    m_logger->debug("Path switch request Acknowledge received");
     auto *ue = findUeContext(m_pathSwitchPduSession->ueId);
     auto w = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::UE_CONTEXT_UPDATE);
     w->update = std::make_unique<GtpUeContextUpdate>(true, ue->ctxId, ue->ueAmbr);
     m_base->gtpTask->push(std::move(w));
 
     auto m = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::SESSION_CREATE);
-    std::cout<<"m_pathSwitchReqUeId: "<<m_pathSwitchReqUeId<<std::endl;
     m->resource = m_pathSwitchPduSession;
     m_base->gtpTask->push(std::move(m));
 
