@@ -92,7 +92,6 @@ void GnbRlsTask::onLoop()
             break;
         }
         case NmGnbRlsToRls::SESSION_TRANSMISSION: {
-            //auto &m = (rls::RlsSessionTransmission &)msg;
             auto m = std::make_unique<NmGnbRlsToNgap>(NmGnbRlsToNgap::PACKET_SWITCH_REQUEST);
             m->ueId = w.ueId;
             m->psi = w.psi;
