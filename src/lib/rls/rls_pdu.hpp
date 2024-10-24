@@ -35,14 +35,14 @@ enum class EMessageType : uint8_t
     //Urwah
     SESSION_TRANSMISSION = 8,
     XN_SESSION_TRANSMISSION = 9,
-
+    RELEASE_SESSION = 10,
 };
 
 enum class EPduType : uint8_t
 {
     RESERVED = 0,
     RRC,
-    DATA
+    DATA,
 };
 
 struct RlsMessage
@@ -74,6 +74,17 @@ struct RlsHeartBeatAck : RlsMessage
 };
 
 //Urwah
+struct RlsTerminateSession : RlsMessage
+{
+    uint32_t pduId{};
+    uint32_t psi{};
+
+
+    explicit RlsTerminateSession(uint64_t sti) : RlsMessage(EMessageType::RELEASE_SESSION, sti)
+    {
+    }
+};
+
 struct RlsSessionTransmission : RlsMessage
 {
     EPduType pduType{};
@@ -111,6 +122,8 @@ struct RlsPduTransmission : RlsMessage
     uint32_t pduId{};
     uint32_t payload{};
     OctetString pdu{};
+    //Urwah
+    //std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
 
     explicit RlsPduTransmission(uint64_t sti) : RlsMessage(EMessageType::PDU_TRANSMISSION, sti)
     {

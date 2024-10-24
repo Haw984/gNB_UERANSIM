@@ -43,6 +43,8 @@ class RlsUdpTask : public NtsTask
     bool m_wifi;
     std::string m_ueInterface{};
     std::string m_interface{};
+    std::vector<int> releaseUeid{};
+
 
   public:
     explicit RlsUdpTask(TaskBase *base, uint64_t sti, Vector3 phyLocation, bool m_wifi, std::string m_ueInterface, std::string m_interface);

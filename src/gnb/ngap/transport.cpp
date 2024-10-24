@@ -6,6 +6,7 @@
 // See README, LICENSE, and CONTRIBUTING files for licensing details.
 //
 
+#include <iostream>
 #include "encode.hpp"
 #include "task.hpp"
 #include "utils.hpp"

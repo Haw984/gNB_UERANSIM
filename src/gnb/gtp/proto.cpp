@@ -220,6 +220,7 @@ std::unique_ptr<GtpMessage> DecodeGtpMessage(const OctetView &stream)
                     header = DecodePdcpPduNumberExtHeader(len, stream);
                     break;
                 case 0b10000001: // Not used in gNB
+                    break;
                 case 0b10000011: // Not used in gNB
                     break;
                 default:

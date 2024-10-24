@@ -60,9 +60,9 @@ class NgapTask : public NtsTask
     uint32_t m_downlinkTeidCounter;
     bool m_isInitialized;
     //Urwah
+    std::unordered_map<uint64_t, std::unique_ptr<PduSessionResource>> m_pduSessions;
     PduSessionResource *m_pathSwitchPduSession;
     int m_pathSwitchReqUeId = 0;
-    
 
     friend class GnbCmdHandler;
 
@@ -144,6 +144,8 @@ class NgapTask : public NtsTask
     /* Radio resource control */
     void handleRadioLinkFailure(int ueId);
     void receivePaging(int amfId, ASN_NGAP_Paging *msg);
+    //Urwah
+    void handleSignalLost(int ueId, int psi);
 };
 
 } // namespace nr::gnb

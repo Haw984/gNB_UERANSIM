@@ -74,6 +74,8 @@ class GnbRrcTask : public NtsTask
     void deliverUplinkNas(int ueId, OctetString &&nasPdu);
     void releaseConnection(int ueId);
     void handleRadioLinkFailure(int ueId);
+    //Urwah
+    void handleSignalLost(int ueId, int psi);
     void handlePaging(const asn::Unique<ASN_NGAP_FiveG_S_TMSI> &tmsi,
                       const asn::Unique<ASN_NGAP_TAIListForPaging> &taiList);
 

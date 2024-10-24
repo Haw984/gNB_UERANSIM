@@ -35,6 +35,7 @@ void GnbRlsTask::onStart()
     m_udpTask->start();
     m_ctlTask->start();
     m_wifiCounter = 0;
+
 }
 
 void GnbRlsTask::onLoop()
@@ -56,11 +57,15 @@ void GnbRlsTask::onLoop()
             break;
         }
         case NmGnbRlsToRls::SIGNAL_LOST: {
-	    if (m_base->config->wifi == true && NtsTask::flag == true && m_wifiCounter > 15){
             m_logger->debug("UE[%d] signal lost", w.ueId);
-            m_wifiCounter=0;
-	    }
-	    m_wifiCounter++;
+            if (m_base->config->wifi == true)
+            {
+                if (NtsTask::flag == true && m_wifiCounter > 15)
+                {
+                    m_wifiCounter=0;
+                }
+                m_wifiCounter++;
+            }
             break;
         }
         case NmGnbRlsToRls::UPLINK_DATA: {
@@ -85,6 +90,13 @@ void GnbRlsTask::onLoop()
         }
         case NmGnbRlsToRls::TRANSMISSION_FAILURE: {
             m_logger->debug("transmission failure [%s]", "");
+            break;
+        }
+        case NmGnbRlsToRls::SESSION_CHANGE:{
+            auto m = std::make_unique<NmGnbRlsToGtp>(NmGnbRlsToGtp::DATA_PDU_RELEASE);
+            m->ueId = w.ueId;
+            m->psi = w.psi;
+            m_base->gtpTask->push(std::move(m));
             break;
         }
         case NmGnbRlsToRls::SESSION_TRANSMISSION: {
@@ -135,21 +147,29 @@ void GnbRlsTask::onLoop()
         }
         break;
     }
-    case NtsMessageType::GNB_NGAP_TO_RLS:{
+    case NtsMessageType::GNB_NGAP_TO_RLS: {
         auto &w = dynamic_cast<NmGnbNgapToRls &>(*msg);
-        switch(w.present)
+        switch (w.present)
         {
-            case NmGnbNgapToRls::XN_SESSION_CREATE:{
-                auto l = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::DOWNLINK_XN_DATA);
-                l->ueId = w.ueId;
-                l->psi = w.psi;
-                m_ctlTask->push(std::move(l));
-                break;
+        case NmGnbNgapToRls::DATA_PDU_INFO: {
+            auto m = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::DOWNLINK_SESSION);
+            m->ueId = w.ueId;
+            m->psi = w.psi;
+            m->amfId = w.amfId;
+            m->m_pduSession = std::move(w.m_pduSession);
+            m_ctlTask->push(std::move(m));
+            break;
+        }
+        case NmGnbNgapToRls::XN_SESSION_CREATE:{
+            auto l = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::DOWNLINK_XN_DATA);
+            l->ueId = w.ueId;
+            l->psi = w.psi;
+            m_ctlTask->push(std::move(l));
+            break;
             }
         }
         break;
     }
-
     default:
         m_logger->unhandledNts(*msg);
         break;

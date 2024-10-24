@@ -39,11 +39,13 @@ struct NmGnbRlsToRrc : NtsMessage
     {
         SIGNAL_DETECTED,
         UPLINK_RRC,
+	    SIGNAL_LOST,
     } present;
 
     // SIGNAL_DETECTED
     // UPLINK_RRC
     int ueId{};
+    int psi{};
 
     // UPLINK_RRC
     OctetString data;
@@ -59,13 +61,15 @@ struct NmGnbRlsToGtp : NtsMessage
     enum PR
     {
         DATA_PDU_DELIVERY,
+        //Urwah
+        DATA_PDU_RELEASE,
     } present;
 
     // DATA_PDU_DELIVERY
     int ueId{};
     int psi{};
     OctetString pdu;
-
+    
     explicit NmGnbRlsToGtp(PR present) : NtsMessage(NtsMessageType::GNB_RLS_TO_GTP), present(present)
     {
     }
@@ -76,6 +80,7 @@ struct NmGnbGtpToRls : NtsMessage
     enum PR
     {
         DATA_PDU_DELIVERY,
+
     } present;
 
     // DATA_PDU_DELIVERY
@@ -85,7 +90,53 @@ struct NmGnbGtpToRls : NtsMessage
     //Urwah
     std::unordered_map<uint64_t, std::unique_ptr<PduSessionResource>> m_pduSession;
 
+
+
     explicit NmGnbGtpToRls(PR present) : NtsMessage(NtsMessageType::GNB_GTP_TO_RLS), present(present)
+    {
+    }
+};
+//Urwah
+struct NmGnbGtpToNgap : NtsMessage
+{
+    enum PR
+    {
+        //Urwah
+        DATA_PDU_INFO,
+    } present;
+
+    // DATA_PDU_DELIVERY
+    int ueId{};
+    int psi{};
+    //OctetString pdu{};
+
+    //Urwah
+    std::unique_ptr<PduSessionResource> m_pduSession;
+
+
+    explicit NmGnbGtpToNgap(PR present) : NtsMessage(NtsMessageType::GNB_GTP_TO_NGAP), present(present)
+    {
+    }
+};
+//Urwah
+struct NmGnbNgapToRls : NtsMessage
+{
+    enum PR
+    {
+        //Urwah
+        DATA_PDU_INFO,
+    } present;
+
+    // DATA_PDU_DELIVERY
+    int ueId{};
+    int psi{};
+    //OctetString pdu{};
+    int amfId{};
+    //Urwah
+    std::unique_ptr<PduSessionResource> m_pduSession;
+
+
+    explicit NmGnbNgapToRls(PR present) : NtsMessage(NtsMessageType::GNB_NGAP_TO_RLS), present(present)
     {
     }
 };
@@ -104,6 +155,8 @@ struct NmGnbRlsToRls : NtsMessage
         RADIO_LINK_FAILURE,
         TRANSMISSION_FAILURE,
         //Urwah
+        DOWNLINK_SESSION,
+        SESSION_CHANGE,
         DOWNLINK_XN_DATA,
         SESSION_TRANSMISSION,
     } present;
@@ -122,6 +175,9 @@ struct NmGnbRlsToRls : NtsMessage
     // DOWNLINK_DATA
     // UPLINK_DATA
     int psi{};
+    //Urwah
+    std::unique_ptr<PduSessionResource> m_pduSession;
+    int amfId;
 
     // DOWNLINK_DATA
     // DOWNLINK_RRC
@@ -227,14 +283,15 @@ struct NmGnbRrcToNgap : NtsMessage
     {
         INITIAL_NAS_DELIVERY,
         UPLINK_NAS_DELIVERY,
-        RADIO_LINK_FAILURE
+        RADIO_LINK_FAILURE,
+	    SIGNAL_LOST,
     } present;
 
     // INITIAL_NAS_DELIVERY
     // UPLINK_NAS_DELIVERY
     // RADIO_LINK_FAILURE
     int ueId{};
-
+    int psi{};
     // INITIAL_NAS_DELIVERY
     // UPLINK_NAS_DELIVERY
     OctetString pdu{};

@@ -27,7 +27,13 @@ void GnbRrcTask::handleRlsSapMessage(NmGnbRlsToRrc &msg)
         handleUplinkRrc(msg.ueId, msg.rrcChannel, msg.data);
         break;
     }
+    //Urwah  
+    case NmGnbRlsToRrc::SIGNAL_LOST: {
+        m_logger->debug("UE[%d] signal lost", msg.ueId);
+        handleSignalLost(msg.ueId, msg.psi);
+        break;
+    }
+    
     }
 }
-
 } // namespace nr::gnb

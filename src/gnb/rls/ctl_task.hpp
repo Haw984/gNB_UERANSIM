@@ -27,6 +27,7 @@ class RlsControlTask : public NtsTask
     std::unordered_map<uint32_t, rls::PduInfo> m_pduMap;
     std::unordered_map<int, std::vector<uint32_t>> m_pendingAck;
 
+
   public:
     explicit RlsControlTask(TaskBase *base, uint64_t sti);
     ~RlsControlTask() override = default;
@@ -41,10 +42,11 @@ class RlsControlTask : public NtsTask
 
   private:
     void handleSignalDetected(int ueId);
-    void handleSignalLost(int ueId);
+    void handleSignalLost(int ueId, int psi);
     void handleRlsMessage(int ueId, rls::RlsMessage &msg);
     void handleDownlinkRrcDelivery(int ueId, uint32_t pduId, rrc::RrcChannel channel, OctetString &&data);
     void handleDownlinkDataDelivery(int ueId, int psi, OctetString &&data);
+    void handleDownlinkSessionDelivery(int ueId, int psi, int amfId, std::unique_ptr<PduSessionResource> m_pduSession);
     void onAckControlTimerExpired();
     void onAckSendTimerExpired();
 };

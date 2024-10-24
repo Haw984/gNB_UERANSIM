@@ -105,6 +105,18 @@ void GnbRrcTask::handleRadioLinkFailure(int ueId)
     m_ueCtx.erase(ueId);
 }
 
+void GnbRrcTask::handleSignalLost(int ueId, int psi)
+{
+    // Notify NGAP task
+    auto w = std::make_unique<NmGnbRrcToNgap>(NmGnbRrcToNgap::SIGNAL_LOST);
+    w->ueId = ueId;
+    w->psi = psi;
+    m_base->ngapTask->push(std::move(w));
+
+    // Delete UE RRC context
+    m_ueCtx.erase(ueId);
+}
+
 void GnbRrcTask::handlePaging(const asn::Unique<ASN_NGAP_FiveG_S_TMSI> &tmsi,
                               const asn::Unique<ASN_NGAP_TAIListForPaging> &taiList)
 {

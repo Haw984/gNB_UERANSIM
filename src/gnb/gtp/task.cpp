@@ -12,6 +12,8 @@
 #include <gnb/rls/task.hpp>
 #include <utils/constants.hpp>
 #include <utils/libc_error.hpp>
+#include <gnb/ngap/task.hpp>
+
 
 #include <asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h>
 #include <cstdlib>
@@ -83,10 +85,31 @@ void GtpTask::onLoop()
         auto &w = dynamic_cast<NmGnbRlsToGtp &>(*msg);
         switch (w.present)
         {
-        case NmGnbRlsToGtp::DATA_PDU_DELIVERY: {
-            handleUplinkData(w.ueId, w.psi, std::move(w.pdu));
-            break;
-        }
+            case NmGnbRlsToGtp::DATA_PDU_DELIVERY: {
+                handleUplinkData(w.ueId, w.psi, std::move(w.pdu));
+                break;
+            }
+            case NmGnbRlsToGtp::DATA_PDU_RELEASE: {
+                if (!m_ueContexts.count(w.ueId))
+                {
+                    m_logger->err("PDU session resource could not be changed, UE context with ID[%d] not found", w.ueId);
+                    return;
+                }
+                auto m = std::make_unique<NmGnbGtpToNgap>(NmGnbGtpToNgap::DATA_PDU_INFO);
+                uint64_t sessionInd = MakeSessionResInd(w.ueId, w.psi);
+                m->ueId = w.ueId;
+                m->psi = w.psi;
+                m->m_pduSession = std::move(m_pduSessions[sessionInd]);
+                m_base->ngapTask->push(std::move(m));
+                auto it = std::find(NtsTask::ueIdPsi.ueIdList.begin(), NtsTask::ueIdPsi.ueIdList.end(), w.ueId);
+                if (it != NtsTask::ueIdPsi.ueIdList.end())
+                {
+                    int index = std::distance(NtsTask::ueIdPsi.ueIdList.begin(), it);
+                    NtsTask::ueIdPsi.ueIdList.erase(it); 
+                    NtsTask::ueIdPsi.uePsiList.erase(NtsTask::ueIdPsi.uePsiList.begin() + index);  // Remove from uePsiList 
+                }
+                break;
+            }
         }
         break;
     }
@@ -116,6 +139,15 @@ void GtpTask::handleSessionCreate(PduSessionResource *session)
     {
         m_logger->err("PDU session resource could not be created, UE context with ID[%d] not found", session->ueId);
         return;
+    }
+    //Urwah
+    auto it = std::find(NtsTask::ueIdPsi.ueIdList.begin(), NtsTask::ueIdPsi.ueIdList.end(), session->ueId);
+    if (it != NtsTask::ueIdPsi.ueIdList.end())
+    {
+    }
+    else{
+        NtsTask::ueIdPsi.ueIdList.push_back(session->ueId);
+        NtsTask::ueIdPsi.uePsiList.push_back(session->psi); 
     }
     uint64_t sessionInd = MakeSessionResInd(session->ueId, session->psi);
     m_pduSessions[sessionInd] = std::unique_ptr<PduSessionResource>(session);
@@ -197,15 +229,13 @@ void GtpTask::handleUplinkData(int ueId, int psi, OctetString &&pdu)
     auto &pduSession = m_pduSessions[sessionInd];
     if (m_rateLimiter->allowUplinkPacket(sessionInd, static_cast<int64_t>(pdu.length())))
     {
+        // TODO: currently using first QSI
         gtp::GtpMessage gtp{};
         gtp.payload = std::move(pdu);
         gtp.msgType = gtp::GtpMessage::MT_G_PDU;
         gtp.teid = pduSession->upTunnel.teid;
-
         auto ul = std::make_unique<gtp::UlPduSessionInformation>();
-        // TODO: currently using first QSI
         ul->qfi = static_cast<int>(pduSession->qosFlows->list.array[0]->qosFlowIdentifier);
-
         auto cont = std::make_unique<gtp::PduSessionContainerExtHeader>();
         cont->pduSessionInformation = std::move(ul);
         gtp.extHeaders.push_back(std::move(cont));

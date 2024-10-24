@@ -5,14 +5,17 @@
 // https://github.com/aligungr/UERANSIM/
 // See README, LICENSE, and CONTRIBUTING files for licensing details.
 //
-
+#include <iostream>
 #include "task.hpp"
 #include "utils.hpp"
 #include <sstream>
 
 #include <gnb/app/task.hpp>
 #include <gnb/sctp/task.hpp>
+
+#include <gnb/rls/task.hpp>
 #include <gnb/gtp/task.hpp>  
+
 namespace nr::gnb
 {
 
@@ -67,6 +70,10 @@ void NgapTask::onLoop()
             handleRadioLinkFailure(w.ueId);
             break;
         }
+        case NmGnbRrcToNgap::SIGNAL_LOST: {
+            handleSignalLost(w.ueId, w.psi);
+            break;
+        }
         }
         break;
     }
@@ -90,6 +97,23 @@ void NgapTask::onLoop()
         break;
     }
     //Urwah
+    case NtsMessageType::GNB_GTP_TO_NGAP: {
+        auto &x = dynamic_cast<NmGnbGtpToNgap &>(*msg);    
+        switch (x.present)
+        { 
+            case NmGnbGtpToNgap::DATA_PDU_INFO: {
+                auto *ue = findUeContext(x.ueId);
+                auto m = std::make_unique<NmGnbNgapToRls>(NmGnbNgapToRls::DATA_PDU_INFO);
+                m->m_pduSession = std::move(x.m_pduSession);
+                m->ueId = x.ueId;
+                m->psi = x.psi;
+                m->amfId = std::move(static_cast<int>(ue->amfUeNgapId));
+                m_base->rlsTask->push(std::move(m));
+                break;
+            }
+        }
+        break;
+    }
     case NtsMessageType::GNB_RLS_TO_NGAP: {
         auto &w = dynamic_cast<NmGnbRlsToNgap &>(*msg);
         switch (w.present)

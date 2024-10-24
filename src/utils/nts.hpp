@@ -42,6 +42,10 @@ enum class NtsMessageType
     GNB_RRC_TO_RLS,
     GNB_RLS_TO_RLS,
     GNB_NGAP_TO_RRC,
+    //Urwah
+    GNB_NGAP_TO_RLS,
+    GNB_GTP_TO_NGAP,
+    
     GNB_RRC_TO_NGAP,
     GNB_NGAP_TO_GTP,
     //Urwah
@@ -130,6 +134,11 @@ class NtsTask
   public:
     NtsTask() = default;
     static bool flag;
+    struct infoList{
+      std::vector<int> ueIdList;
+      std::vector<int> uePsiList;
+    }; static infoList ueIdPsi;
+    
 
     virtual ~NtsTask() = default;
 

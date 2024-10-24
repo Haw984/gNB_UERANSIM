@@ -20,6 +20,8 @@
 
 #include <asn/ngap/ASN_NGAP_QosFlowSetupRequestList.h>
 #include <asn/rrc/ASN_RRC_InitialUE-Identity.h>
+#include <iostream>
+#include <iterator>
 
 namespace nr::gnb
 {

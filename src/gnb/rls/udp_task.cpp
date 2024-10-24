@@ -19,9 +19,13 @@
 #include <utils/constants.hpp>
 #include <utils/libc_error.hpp>
 #include <string>
+
 #include <arpa/inet.h>
 #include <cstring>
-#include <stdexcept>
+#include <stdexcept> 
+
+#include <cstdlib>
+
 static constexpr const int BUFFER_SIZE = 16384;
 
 static constexpr const int LOOP_PERIOD = 1000;
@@ -30,7 +34,6 @@ static constexpr const int HEARTBEAT_THRESHOLD = 5000; // (LOOP_PERIOD + RECEIVE
 
 static constexpr const int MIN_ALLOWED_DBM = -120;
 bool NtsTask::flag = false;
-
 
 std::string getIPv4AddressString(const InetAddress &inetAddress) {
   if (inetAddress.getIpVersion() != 4) {
@@ -55,8 +58,6 @@ std::string getIPv4AddressString(const InetAddress &inetAddress) {
   return std::string(ipString);
 }
 
-
-
 static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
 {
     int deltaX = myPos.x - uePos.x;
@@ -68,9 +69,6 @@ static int EstimateSimulatedDbm(const Vector3 &myPos, const Vector3 &uePos)
         return -1; // 0 may be confusing for people
     return -distance;
 }
-
-#include <string>
-#include <cstdlib>
 
 // Function to execute a command
 int execute_command(const std::string& command) {
@@ -149,20 +147,44 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
 	    std::string ipv4Address = getIPv4AddressString(addr);
         if (dbm < MIN_ALLOWED_DBM)
         {
-	    if(m_wifi == true)
-	    {
-            if (NtsTask::flag == true)
+            if(m_wifi == true)
             {
-                int status = route("iptables -D FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address," -j ACCEPT");
-                status = route("iptables -D FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j ACCEPT");
-                status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address, " -j DROP");
-                status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j DROP");
-            if (status == 0){
-                m_logger->info("Weak signal power.");
-                m_logger->info("Wifi connection removed.");}
+                if (NtsTask::flag == true)
+                {
+                    int status = route("iptables -D FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address," -j ACCEPT");
+                    status = route("iptables -D FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j ACCEPT");
+                    status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address, " -j DROP");
+                    status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j DROP");
+                    if (status == 0){
+                    m_logger->info("Weak signal power.");
+                    m_logger->info("Wifi connection removed.");}
+                }
+                NtsTask::flag = false;
             }
-            NtsTask::flag = false;
-	    }
+            else
+            {
+                if (m_stiToUe.count(msg->sti))
+                {
+                    int ueId = m_stiToUe[msg->sti];
+                    auto it = std::find(releaseUeid.begin(), releaseUeid.end(), ueId);
+                    if (it != releaseUeid.end())
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        auto w= std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SESSION_CHANGE);
+                        w->ueId = ueId;
+                        auto exist = std::find(NtsTask::ueIdPsi.ueIdList.begin(), NtsTask::ueIdPsi.ueIdList.end(), ueId);
+                        if (exist != NtsTask::ueIdPsi.ueIdList.end()){
+                            int index = std::distance(NtsTask::ueIdPsi.ueIdList.begin(), exist);
+                            w->psi = NtsTask::ueIdPsi.uePsiList[index];   
+                        }
+                        releaseUeid.push_back(ueId);
+                        m_ctlTask->push(std::move(w));
+                    }
+                }
+            }
             return;
         }
 
