@@ -39,7 +39,7 @@ struct NmGnbRlsToRrc : NtsMessage
     {
         SIGNAL_DETECTED,
         UPLINK_RRC,
-	    SIGNAL_LOST,
+	SIGNAL_LOST,
     } present;
 
     // SIGNAL_DETECTED
@@ -125,6 +125,7 @@ struct NmGnbNgapToRls : NtsMessage
     {
         //Urwah
         DATA_PDU_INFO,
+	XN_SESSION_CREATE,
     } present;
 
     // DATA_PDU_DELIVERY
@@ -199,8 +200,6 @@ struct NmGnbRlsToRls : NtsMessage
     std::vector<rls::PduInfo> pduList;
 
     //Urwah
-    int amfId{};
-    std::unique_ptr<PduSessionResource> m_pduSession;
     nas::IEUeSecurityCapability m_ueSecurityCapability;
 
 
@@ -243,8 +242,6 @@ struct NmGnbRlsToNgap : NtsMessage
 
     OctetString pdu{};
     nas::IEUeSecurityCapability m_ueSecurityCapability;
-
-    
 
     explicit NmGnbRlsToNgap(PR present) : NtsMessage(NtsMessageType::GNB_RLS_TO_NGAP), present(present)
     {
@@ -333,7 +330,7 @@ struct NmGnbNgapToGtp : NtsMessage
     }
 };
 //Urwah
-struct NmGnbNgapToRls : NtsMessage
+/*struct NmGnbNgapToRls : NtsMessage
 {
     enum PR
     {
@@ -350,7 +347,7 @@ struct NmGnbNgapToRls : NtsMessage
     explicit NmGnbNgapToRls(PR present) : NtsMessage(NtsMessageType::GNB_NGAP_TO_RLS), present(present)
     {
     }
-};
+};*/
 struct NmGnbSctp : NtsMessage
 {
     enum PR
