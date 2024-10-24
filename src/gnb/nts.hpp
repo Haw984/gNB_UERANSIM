@@ -22,6 +22,7 @@
 #include <utils/nts.hpp>
 #include <utils/octet_string.hpp>
 #include <utils/unique_buffer.hpp>
+#include <lib/nas/ie4.hpp>
 
 extern "C"
 {
@@ -86,6 +87,8 @@ struct NmGnbGtpToRls : NtsMessage
     int ueId{};
     int psi{};
     OctetString pdu{};
+    //Urwah
+    std::unordered_map<uint64_t, std::unique_ptr<PduSessionResource>> m_pduSession;
 
 
 
@@ -154,6 +157,8 @@ struct NmGnbRlsToRls : NtsMessage
         //Urwah
         DOWNLINK_SESSION,
         SESSION_CHANGE,
+        DOWNLINK_XN_DATA,
+        SESSION_TRANSMISSION,
     } present;
 
     // SIGNAL_DETECTED
@@ -193,6 +198,12 @@ struct NmGnbRlsToRls : NtsMessage
     // TRANSMISSION_FAILURE
     std::vector<rls::PduInfo> pduList;
 
+    //Urwah
+    int amfId{};
+    std::unique_ptr<PduSessionResource> m_pduSession;
+    nas::IEUeSecurityCapability m_ueSecurityCapability;
+
+
     explicit NmGnbRlsToRls(PR present) : NtsMessage(NtsMessageType::GNB_RLS_TO_RLS), present(present)
     {
     }
@@ -211,6 +222,31 @@ struct NmGnbRrcToRls : NtsMessage
     OctetString pdu{};
 
     explicit NmGnbRrcToRls(PR present) : NtsMessage(NtsMessageType::GNB_RRC_TO_RLS), present(present)
+    {
+    }
+};
+
+//Urwah
+struct NmGnbRlsToNgap : NtsMessage
+{
+    enum PR
+    {
+        PACKET_SWITCH_REQUEST,
+    } present;
+
+    // RRC_PDU_DELIVERY
+    int ueId{};
+    //Urwah
+    std::unique_ptr<PduSessionResource> m_pduSession;
+    int psi{};
+    int amfId{};
+
+    OctetString pdu{};
+    nas::IEUeSecurityCapability m_ueSecurityCapability;
+
+    
+
+    explicit NmGnbRlsToNgap(PR present) : NtsMessage(NtsMessageType::GNB_RLS_TO_NGAP), present(present)
     {
     }
 };
@@ -296,7 +332,25 @@ struct NmGnbNgapToGtp : NtsMessage
     {
     }
 };
+//Urwah
+struct NmGnbNgapToRls : NtsMessage
+{
+    enum PR
+    {
+        XN_SESSION_CREATE,
+    } present;
 
+
+    // UE_CONTEXT_RELEASE
+    // SESSION_RELEASE
+    int ueId{};
+    // SESSION_RELEASE
+    int psi{};
+
+    explicit NmGnbNgapToRls(PR present) : NtsMessage(NtsMessageType::GNB_NGAP_TO_RLS), present(present)
+    {
+    }
+};
 struct NmGnbSctp : NtsMessage
 {
     enum PR

@@ -20,6 +20,24 @@
 #include <asn/ngap/ASN_NGAP_ProtocolIE-Field.h>
 #include <asn/ngap/ASN_NGAP_RerouteNASRequest.h>
 #include <asn/ngap/ASN_NGAP_UplinkNASTransport.h>
+#include "asn/ngap/ASN_NGAP_UserLocationInformationNR.h"
+#include "asn/ngap/ASN_NGAP_PDUSessionResourceToBeSwitchedDLItem.h"
+
+//Urwah
+#include <utils/octet_string.hpp>
+#include <utils/octet_view.hpp>
+#include <asn/ngap/ASN_NGAP_PDUSessionResourceToBeSwitchedDLList.h>
+#include <asn/ngap/ASN_NGAP_PathSwitchRequest.h>
+#include <asn/ngap/ASN_NGAP_PathSwitchRequestTransfer.h>
+#include "asn/ngap/ASN_NGAP_GTPTunnel.h"
+#include "asn/ngap/ASN_NGAP_QosFlowAcceptedItem.h"
+#include "asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h" // Adjust the path as necessary
+#include <asn/ngap/ASN_NGAP_UESecurityCapabilities.h>
+#include <asn/asn1c/OCTET_STRING.h>
+#include <gnb/gtp/task.hpp>
+
+
+#define MAX_LIST_SIZE 100 // Define an appropriate size based on your needs
 
 namespace nr::gnb
 {
@@ -54,7 +72,6 @@ void NgapTask::handleInitialNasTransport(int ueId, const OctetString &nasPdu, in
     if ((amfCtx->nextStream == 0) && (amfCtx->association.outStreams > 1))
         amfCtx->nextStream += 1;
     ueCtx->uplinkStream = amfCtx->nextStream;
-
     std::vector<ASN_NGAP_InitialUEMessage_IEs *> ies;
 
     auto *ieEstablishmentCause = asn::New<ASN_NGAP_InitialUEMessage_IEs>();
@@ -89,10 +106,11 @@ void NgapTask::handleInitialNasTransport(int ueId, const OctetString &nasPdu, in
         asn::SetBitStringInt<6>(sTmsi->amfPointer, ieTmsi->value.choice.FiveG_S_TMSI.aMFPointer);
         asn::SetOctetString4(ieTmsi->value.choice.FiveG_S_TMSI.fiveG_TMSI, sTmsi->tmsi);
         ies.push_back(ieTmsi);
+
     }
 
-    auto *pdu = asn::ngap::NewMessagePdu<ASN_NGAP_InitialUEMessage>(ies);
-    sendNgapUeAssociated(ueId, pdu);
+        auto *pdu = asn::ngap::NewMessagePdu<ASN_NGAP_InitialUEMessage>(ies);
+        sendNgapUeAssociated(ueId, pdu);
 }
 
 void NgapTask::deliverDownlinkNas(int ueId, OctetString &&nasPdu)
@@ -204,5 +222,58 @@ void NgapTask::receiveRerouteNasRequest(int amfId, ASN_NGAP_RerouteNASRequest *m
 
     sendNgapUeAssociated(ue->ctxId, ngapPdu);
 }
+//Urwah
+void NgapTask::handlePathSwitchRequest(int ueId, int amfId, const PduSessionResource &pduSessionResource, 
+                                        const nas::IEUeSecurityCapability ueSecurityCapability)
+{
+    m_logger->debug("Path Switch Request received from UE[%d]", ueId);
+    m_pathSwitchReqUeId = ueId;
+    // Ensure UE context exists
+    if (!m_ueCtx.count(ueId))
+    {
+        createUeContext(ueId);
+    }
+    auto *ueCtx = findUeContext(ueId);
+    if (ueCtx == nullptr)
+    {
+        m_logger->err("Failed to find UE context for UE[%d]", ueId);
+        return;
+    }
+    if (ueCtx->amfUeNgapId == -1)
+    {
+        ueCtx->amfUeNgapId = amfId;
+    }
+    auto *amfCtx = findAmfContext(ueCtx->associatedAmfId);
 
-} // namespace nr::gnb
+    if (amfCtx == nullptr || amfCtx->state != EAmfState::CONNECTED)
+    {
+        m_logger->err("AMF context not found or not connected for UE[%d]", ueId);
+        return;
+    }
+
+    // Determine uplink stream
+    amfCtx->nextStream = (amfCtx->nextStream + 1) % amfCtx->association.outStreams;
+    if (amfCtx->nextStream == 0 && amfCtx->association.outStreams > 1)
+        amfCtx->nextStream += 1;
+    ueCtx->uplinkStream = amfCtx->nextStream;
+
+    auto w = std::make_unique<NmGnbNgapToGtp>(NmGnbNgapToGtp::UE_CONTEXT_UPDATE);
+    ueCtx->ueAmbr.dlAmbr = pduSessionResource.sessionAmbr.dlAmbr;
+    ueCtx->ueAmbr.ulAmbr = pduSessionResource.sessionAmbr.ulAmbr;
+    w->update = std::make_unique<GtpUeContextUpdate>(true, ueCtx->ctxId, ueCtx->ueAmbr);
+    m_base->gtpTask->push(std::move(w));
+
+    // Prepare NGAP PDU for Path Switch Request
+    auto *pdu = asn::New<ASN_NGAP_NGAP_PDU>();
+    pdu->present = ASN_NGAP_NGAP_PDU_PR_initiatingMessage;
+    pdu->choice.initiatingMessage = asn::New<ASN_NGAP_InitiatingMessage>();
+    pdu->choice.initiatingMessage->procedureCode = ASN_NGAP_ProcedureCode_id_PathSwitchRequest;
+    pdu->choice.initiatingMessage->criticality = ASN_NGAP_Criticality_reject;
+    pdu->choice.initiatingMessage->value.present = ASN_NGAP_InitiatingMessage__value_PR_PathSwitchRequest;
+ 
+    // Send the prepared Path Switch Request
+    sendNgapUeAssociatedPathSwitchReq(ueId, pdu, pduSessionResource, ueSecurityCapability);
+}
+}
+
+

@@ -11,9 +11,11 @@
 #include <cstdint>
 #include <memory>
 #include <gnb/types.hpp>
+
 #include <utils/common_types.hpp>
 #include <utils/octet_string.hpp>
 #include <utils/octet_view.hpp>
+#include <lib/nas/msg.hpp>
 
 namespace rls
 {
@@ -32,6 +34,7 @@ enum class EMessageType : uint8_t
     PDU_TRANSMISSION_ACK = 7,
     //Urwah
     SESSION_TRANSMISSION = 8,
+    XN_SESSION_TRANSMISSION = 9,
     RELEASE_SESSION = 10,
 };
 
@@ -81,15 +84,34 @@ struct RlsTerminateSession : RlsMessage
     {
     }
 };
+
 struct RlsSessionTransmission : RlsMessage
 {
     EPduType pduType{};
     uint32_t pduId{};
     uint32_t payload{};
     uint32_t amfId{};
+
     std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
+    nas::IEUeSecurityCapability m_ueSecurityCapability;
+
 
     explicit RlsSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::SESSION_TRANSMISSION, sti)
+    {
+    }
+};
+
+struct RlsXnSessionTransmission : RlsMessage
+{
+    EPduType pduType{};
+    uint32_t pduId{};
+    uint32_t payload{};
+    uint32_t amfId{};
+
+    std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
+
+
+    explicit RlsXnSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::XN_SESSION_TRANSMISSION, sti)
     {
     }
 };

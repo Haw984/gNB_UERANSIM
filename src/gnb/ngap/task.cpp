@@ -7,23 +7,26 @@
 //
 #include <iostream>
 #include "task.hpp"
-
+#include "utils.hpp"
 #include <sstream>
 
 #include <gnb/app/task.hpp>
 #include <gnb/sctp/task.hpp>
+
 #include <gnb/rls/task.hpp>
+#include <gnb/gtp/task.hpp>  
 
 namespace nr::gnb
 {
 
-NgapTask::NgapTask(TaskBase *base) : m_base{base}, m_ueNgapIdCounter{}, m_downlinkTeidCounter{}, m_isInitialized{}
+NgapTask::NgapTask(TaskBase *base) : m_base{base}, m_ueNgapIdCounter{}, m_downlinkTeidCounter{}, m_isInitialized{}, m_pathSwitchPduSession{}
 {
     m_logger = base->logBase->makeUniqueLogger("ngap");
 }
 
 void NgapTask::onStart()
 {
+
     for (auto &amfConfig : m_base->config->amfConfigs)
         createAmfContext(amfConfig);
     if (m_amfCtx.empty())
@@ -93,6 +96,7 @@ void NgapTask::onLoop()
         }
         break;
     }
+    //Urwah
     case NtsMessageType::GNB_GTP_TO_NGAP: {
         auto &x = dynamic_cast<NmGnbGtpToNgap &>(*msg);    
         switch (x.present)
@@ -110,7 +114,22 @@ void NgapTask::onLoop()
         }
         break;
     }
-    default: {
+    case NtsMessageType::GNB_RLS_TO_NGAP: {
+        auto &w = dynamic_cast<NmGnbRlsToNgap &>(*msg);
+        switch (w.present)
+        {
+            case NmGnbRlsToNgap::PACKET_SWITCH_REQUEST: {
+                std::string gtpIp = m_base->config->gtpAdvertiseIp.value_or(m_base->config->gtpIp);
+                w.m_pduSession->downTunnel.address = utils::IpToOctetString(gtpIp);
+                w.m_pduSession->downTunnel.teid = ++m_downlinkTeidCounter;
+                m_pathSwitchPduSession = w.m_pduSession.release();
+                handlePathSwitchRequest(w.ueId, w.amfId, *m_pathSwitchPduSession, w.m_ueSecurityCapability);
+                break;
+            }
+        }
+        break;
+    }
+    default: {        
         m_logger->unhandledNts(*msg);
         break;
     }

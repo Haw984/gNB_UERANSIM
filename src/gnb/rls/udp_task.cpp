@@ -25,6 +25,7 @@
 #include <stdexcept> 
 
 #include <cstdlib>
+
 static constexpr const int BUFFER_SIZE = 16384;
 
 static constexpr const int LOOP_PERIOD = 1000;

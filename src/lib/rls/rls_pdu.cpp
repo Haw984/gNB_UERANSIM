@@ -88,7 +88,12 @@ void EncodeRlsMessage(const RlsMessage &msg, OctetString &stream)
         }
 
     }   
-
+    else if (msg.msgType == EMessageType::XN_SESSION_TRANSMISSION)
+    {
+        auto &m = (const RlsXnSessionTransmission &)msg;
+        stream.appendOctet4(m.pduId);
+        stream.appendOctet4(m.payload);
+    }   
 }
 
 std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
@@ -145,6 +150,52 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
         auto res = std::make_unique<RlsTerminateSession>(sti);
         res->pduId = stream.read4UI();
         res->psi = stream.read4UI();
+        return res;
+    }
+    else if (msgType == EMessageType::SESSION_TRANSMISSION)
+    {
+        auto res = std::make_unique<RlsSessionTransmission>(sti);
+        res->pduId = stream.read4UI();
+        res->payload = stream.read4UI();
+        res->amfId = stream.read4UI();
+
+        int ueId = stream.read4UI();
+        int psi = stream.read4UI();
+
+
+        res->m_pduSession = std::make_unique<nr::gnb::PduSessionResource>(ueId, psi);
+        // Read AggregateMaximumBitRate
+        res->m_pduSession->sessionAmbr.dlAmbr = stream.read8UL();
+        res->m_pduSession->sessionAmbr.ulAmbr = stream.read8UL();
+
+        // Read boolean and PduSessionType
+        res->m_pduSession->dataForwardingNotPossible = static_cast<bool>(stream.readI());
+        res->m_pduSession->sessionType = static_cast<PduSessionType>(stream.readI());
+
+        // Read GtpTunnel upTunnel
+        res->m_pduSession->upTunnel.teid = stream.read4UI();
+        res->m_pduSession->upTunnel.address = stream.readOctetString(stream.read4I());
+
+        // Read GtpTunnel downTunnel
+        res->m_pduSession->downTunnel.teid = stream.read4UI();
+        res->m_pduSession->downTunnel.address = stream.readOctetString(stream.read4I());
+        // Read QoS Flows
+        int qosFlowCount = stream.read4I();
+        // Use the asn::Unique constructor to convert the raw pointer returned by asn::New into a unique_ptr
+        asn::Unique<ASN_NGAP_QosFlowSetupRequestList> newQosFlows(asn::New<ASN_NGAP_QosFlowSetupRequestList>());
+
+        // Assign the newQosFlows to m.m_pduSession->qosFlows using std::move
+        res->m_pduSession->qosFlows = std::move(newQosFlows);
+        res->m_pduSession->qosFlows->list.array = new ASN_NGAP_QosFlowSetupRequestItem*[qosFlowCount];
+        res->m_pduSession->qosFlows->list.array[0] = new ASN_NGAP_QosFlowSetupRequestItem();
+        for (int iQos = 0; iQos < static_cast<int>(qosFlowCount); iQos++) {
+            // Store the raw pointer in the array
+            res->m_pduSession->qosFlows->list.array[iQos]->qosFlowIdentifier = stream.read4I();
+        }
+        res->m_pduSession->qosFlows->list.count = qosFlowCount;
+
+        nas::IEUeSecurityCapability ueSecCap = nas::IEUeSecurityCapability::Decode( stream, 4);
+        res->m_ueSecurityCapability = std::move(ueSecCap);
         return res;
     }
 

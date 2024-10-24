@@ -78,7 +78,15 @@ void RlsControlTask::onLoop()
             m->psi = w.psi;
             m_mainTask->push(std::move(m));
             break;        
-        }
+            }
+        case NmGnbRlsToRls::DOWNLINK_XN_DATA:
+            {
+            rls::RlsXnSessionTransmission msg{m_sti};
+            msg.pduId = w.ueId;
+            msg.payload = w.psi;
+            m_udpTask->send(w.ueId, msg);
+            break;
+            }
         default:
             m_logger->unhandledNts(*msg);
             break;
@@ -166,6 +174,26 @@ void RlsControlTask::handleRlsMessage(int ueId, rls::RlsMessage &msg)
         auto w = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SIGNAL_LOST);
         w->ueId = m.pduId;
         w->psi = m.psi;
+        m_mainTask->push(std::move(w));
+    }
+    else if (msg.msgType == rls::EMessageType::SESSION_TRANSMISSION)
+    {
+        auto &m = (rls::RlsSessionTransmission &)msg;
+        auto w = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::SESSION_TRANSMISSION);
+        w->ueId = ueId;
+        w->psi = m.payload;
+        w->amfId = m.amfId;
+
+        auto newResource = std::make_unique<nr::gnb::PduSessionResource>(ueId, m.m_pduSession->psi);
+        newResource->sessionAmbr = std::move(m.m_pduSession->sessionAmbr);
+        newResource->dataForwardingNotPossible = std::move(m.m_pduSession->dataForwardingNotPossible);
+        newResource->sessionType = std::move(m.m_pduSession->sessionType);
+        newResource->upTunnel = std::move(m.m_pduSession->upTunnel);
+        newResource->downTunnel = std::move(m.m_pduSession->downTunnel);
+        newResource->qosFlows = std::move(m.m_pduSession->qosFlows);
+        w->m_pduSession = std::move(newResource);
+        
+        w->m_ueSecurityCapability = std::move(m.m_ueSecurityCapability);
         m_mainTask->push(std::move(w));
     }
     else

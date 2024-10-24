@@ -52,14 +52,12 @@
 #include <asn/ngap/ASN_NGAP_UEContextReleaseCommand.h>
 #include <asn/ngap/ASN_NGAP_UEContextReleaseComplete.h>
 #include <asn/ngap/ASN_NGAP_UEContextReleaseRequest.h>
-
 namespace nr::gnb
 {
 
 void NgapTask::receiveInitialContextSetup(int amfId, ASN_NGAP_InitialContextSetupRequest *msg)
 {
     m_logger->debug("Initial Context Setup Request received");
-
     auto *ue = findUeByNgapIdPair(amfId, ngap_utils::FindNgapIdPair(msg));
     if (ue == nullptr)
         return;
@@ -158,7 +156,6 @@ void NgapTask::receiveInitialContextSetup(int amfId, ASN_NGAP_InitialContextSetu
             else
             {
                 auto *tr = asn::New<ASN_NGAP_PDUSessionResourceSetupResponseTransfer>();
-
                 auto &qosList = resource->qosFlows->list;
                 for (int iQos = 0; iQos < qosList.count; iQos++)
                 {
@@ -197,7 +194,6 @@ void NgapTask::receiveInitialContextSetup(int amfId, ASN_NGAP_InitialContextSetu
         deliverDownlinkNas(ue->ctxId, asn::GetOctetString(reqIe->NAS_PDU));
 
     std::vector<ASN_NGAP_InitialContextSetupResponseIEs *> responseIes;
-
     if (!successList.empty())
     {
         auto *ie = asn::New<ASN_NGAP_InitialContextSetupResponseIEs>();
@@ -223,7 +219,7 @@ void NgapTask::receiveInitialContextSetup(int amfId, ASN_NGAP_InitialContextSetu
 
         responseIes.push_back(ie);
     }
-
+   
     auto *response = asn::ngap::NewMessagePdu<ASN_NGAP_InitialContextSetupResponse>(responseIes);
     sendNgapUeAssociated(ue->ctxId, response);
 }
@@ -231,7 +227,6 @@ void NgapTask::receiveInitialContextSetup(int amfId, ASN_NGAP_InitialContextSetu
 void NgapTask::receiveContextRelease(int amfId, ASN_NGAP_UEContextReleaseCommand *msg)
 {
     m_logger->debug("UE Context Release Command received");
-
     auto *ue = findUeByNgapIdPair(amfId, ngap_utils::FindNgapIdPairFromUeNgapIds(msg));
     if (ue == nullptr)
         return;

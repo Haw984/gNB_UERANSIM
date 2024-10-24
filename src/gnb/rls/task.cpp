@@ -10,6 +10,7 @@
 #include <gnb/rls/udp_task.cpp>
 #include <gnb/gtp/task.hpp>
 #include <gnb/rrc/task.hpp>
+#include <gnb/ngap/task.hpp>
 #include <utils/common.hpp>
 #include <utils/random.hpp>
 #include <cstring> 
@@ -56,6 +57,7 @@ void GnbRlsTask::onLoop()
             break;
         }
         case NmGnbRlsToRls::SIGNAL_LOST: {
+            m_logger->debug("UE[%d] signal lost", w.ueId);
             if (m_base->config->wifi == true)
             {
                 if (NtsTask::flag == true && m_wifiCounter > 15)
@@ -64,10 +66,6 @@ void GnbRlsTask::onLoop()
                 }
                 m_wifiCounter++;
             }
-            auto x = std::make_unique<NmGnbRlsToRrc>(NmGnbRlsToRrc::SIGNAL_LOST);
-            x->ueId = w.ueId;
-            x->psi = w.psi;
-            m_base->rrcTask->push(std::move(x));
             break;
         }
         case NmGnbRlsToRls::UPLINK_DATA: {
@@ -99,6 +97,16 @@ void GnbRlsTask::onLoop()
             m->ueId = w.ueId;
             m->psi = w.psi;
             m_base->gtpTask->push(std::move(m));
+            break;
+        }
+        case NmGnbRlsToRls::SESSION_TRANSMISSION: {
+            auto m = std::make_unique<NmGnbRlsToNgap>(NmGnbRlsToNgap::PACKET_SWITCH_REQUEST);
+            m->ueId = w.ueId;
+            m->psi = w.psi;
+            m->amfId = w.amfId;
+            m->m_pduSession = std::move(w.m_pduSession);
+            m->m_ueSecurityCapability = std::move(w.m_ueSecurityCapability);
+            m_base->ngapTask->push(std::move(m));
             break;
         }
         default: {
@@ -152,6 +160,13 @@ void GnbRlsTask::onLoop()
             m_ctlTask->push(std::move(m));
             break;
         }
+        case NmGnbNgapToRls::XN_SESSION_CREATE:{
+            auto l = std::make_unique<NmGnbRlsToRls>(NmGnbRlsToRls::DOWNLINK_XN_DATA);
+            l->ueId = w.ueId;
+            l->psi = w.psi;
+            m_ctlTask->push(std::move(l));
+            break;
+            }
         }
         break;
     }

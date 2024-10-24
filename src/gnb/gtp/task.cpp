@@ -16,6 +16,8 @@
 
 
 #include <asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h>
+#include <cstdlib>
+#include <string>
 
 namespace nr::gnb
 {
@@ -150,7 +152,6 @@ void GtpTask::handleSessionCreate(PduSessionResource *session)
     uint64_t sessionInd = MakeSessionResInd(session->ueId, session->psi);
     m_pduSessions[sessionInd] = std::unique_ptr<PduSessionResource>(session);
     m_sessionTree.insert(sessionInd, session->downTunnel.teid);
-
     updateAmbrForUe(session->ueId);
     updateAmbrForSession(sessionInd);
 }
@@ -211,10 +212,11 @@ void GtpTask::handleUeContextDelete(int ueId)
 void GtpTask::handleUplinkData(int ueId, int psi, OctetString &&pdu)
 {
     const uint8_t *data = pdu.data();
-
-    // ignore non IPv4 packets
     if ((data[0] >> 4 & 0xF) != 4)
-        return;
+        {
+            return;
+        }
+
 
     uint64_t sessionInd = MakeSessionResInd(ueId, psi);
 
@@ -225,7 +227,6 @@ void GtpTask::handleUplinkData(int ueId, int psi, OctetString &&pdu)
     }
 
     auto &pduSession = m_pduSessions[sessionInd];
-
     if (m_rateLimiter->allowUplinkPacket(sessionInd, static_cast<int64_t>(pdu.length())))
     {
         // TODO: currently using first QSI
@@ -243,7 +244,9 @@ void GtpTask::handleUplinkData(int ueId, int psi, OctetString &&pdu)
         if (!gtp::EncodeGtpMessage(gtp, gtpPdu))
             m_logger->err("Uplink data failure, GTP encoding failed");
         else
-            m_udpServer->send(InetAddress(pduSession->upTunnel.address, cons::GtpPort), gtpPdu);
+            {
+                m_udpServer->send(InetAddress(pduSession->upTunnel.address, cons::GtpPort), gtpPdu);
+            }
     }
 }
 
@@ -295,8 +298,9 @@ void GtpTask::handleUdpReceive(const udp::NwUdpServerReceive &msg)
 void GtpTask::updateAmbrForUe(int ueId)
 {
     if (!m_ueContexts.count(ueId))
-        return;
-
+        {
+            return;
+        }
     auto &ue = m_ueContexts[ueId];
     m_rateLimiter->updateUeUplinkLimit(ueId, ue->ueAmbr.ulAmbr);
     m_rateLimiter->updateUeDownlinkLimit(ueId, ue->ueAmbr.dlAmbr);
@@ -305,8 +309,9 @@ void GtpTask::updateAmbrForUe(int ueId)
 void GtpTask::updateAmbrForSession(uint64_t pduSession)
 {
     if (!m_pduSessions.count(pduSession))
-        return;
-
+        {
+            return;
+        }
     auto &sess = m_pduSessions[pduSession];
     m_rateLimiter->updateSessionUplinkLimit(pduSession, sess->sessionAmbr.ulAmbr);
     m_rateLimiter->updateSessionDownlinkLimit(pduSession, sess->sessionAmbr.dlAmbr);
