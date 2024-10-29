@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <lib/nas/utils.hpp>
 #include <ue/nas/task.hpp>
+//Urwah
+#include <ue/rls/task.hpp>
 
 namespace nr::ue
 {
@@ -121,6 +123,12 @@ EProcRc NasMm::sendInitialRegistration(EInitialRegCause regCause)
     m_timers->t3510.start();
     m_timers->t3502.stop();
     m_timers->t3511.stop();
+
+    //Urwah
+    auto m = std::make_unique<NmUeNasToRls>(NmUeNasToRls::CHANGE_SESSION);
+    //nas::IEUeSecurityCapability securityCap = createSecurityCapabilityIe();
+    m->ueSecurityCapability = createSecurityCapabilityIe();
+    m_base->rlsTask->push(std::move(m));
 
     return EProcRc::OK;
 }
@@ -579,6 +587,150 @@ void NasMm::receiveMobilityRegistrationAccept(const nas::RegistrationAccept &msg
     m_logger->info("%s is successful", nas::utils::EnumToString(regType));
 }
 
+void NasMm::receivePathSwitchRegistrationAccept(const nas::RegistrationAccept &msg)
+{
+    Tai currentTai = m_base->shCtx.getCurrentTai();
+    Plmn currentPlmn = currentTai.plmn;
+
+    if (!currentTai.hasValue())
+        return;
+
+    // "The UE, upon receiving a REGISTRATION ACCEPT message, shall delete its old TAI list and store the received TAI
+    // list. If there is no TAI list received, the UE shall consider the old TAI list as valid."
+    if (msg.taiList.has_value())
+    {
+        if (nas::utils::TaiListSize(*msg.taiList) == 0)
+        {
+            m_logger->err("Invalid TAI list size");
+            sendMmStatus(nas::EMmCause::SEMANTICALLY_INCORRECT_MESSAGE);
+            return;
+        }
+
+        m_storage->taiList->set(*msg.taiList);
+    }
+
+    if (nas::utils::TaiListContains(m_storage->taiList->get(), nas::VTrackingAreaIdentity{currentTai}))
+        m_storage->lastVisitedRegisteredTai->set(currentTai);
+
+    // Store the E-PLMN list and ..
+    m_storage->equivalentPlmnList->clear();
+    if (msg.equivalentPLMNs.has_value())
+        for (auto &item : msg.equivalentPLMNs->plmns)
+            m_storage->equivalentPlmnList->add(nas::utils::PlmnFrom(item));
+    // .. if the initial registration procedure is not for emergency services, the UE shall remove from the list any
+    // PLMN code that is already in the list of "forbidden PLMNs". ..
+    if (!hasEmergency())
+    {
+        m_storage->forbiddenPlmnList->forEach(
+            [this](auto &forbiddenPlmn) { m_storage->equivalentPlmnList->remove(forbiddenPlmn); });
+    }
+    // .. in addition, the UE shall add to the stored list the PLMN code of the registered PLMN that sent the list
+    m_storage->equivalentPlmnList->add(currentPlmn);
+
+    // Store the service area list
+    m_storage->serviceAreaList->set(msg.serviceAreaList.value_or(nas::IEServiceAreaList{}));
+    updateForbiddenTaiListsForAllowedIndications();
+
+    // "Upon receipt of the REGISTRATION ACCEPT message, the UE shall reset the registration attempt counter and service
+    // request attempt counter, enter state 5GMM-REGISTERED and set the 5GS update status to 5U1 UPDATED."
+    resetRegAttemptCounter();
+    m_serCounter = 0;
+    switchMmState(EMmSubState::MM_REGISTERED_NORMAL_SERVICE);
+    switchUState(E5UState::U1_UPDATED);
+
+    // "If the ACCEPT message included a T3512 value IE, the UE shall use the value in T3512 value IE as
+    // periodic registration update timer (T3512). If the T3512 value IE is not included, the UE shall use the value
+    // currently stored, e.g. from a prior REGISTRATION ACCEPT message."
+    if (msg.t3512Value.has_value() && nas::utils::HasValue(*msg.t3512Value))
+        m_timers->t3512.start(*msg.t3512Value);
+
+    // Registration complete is sent conditionally
+    bool sendComplete = false;
+
+    // "If the REGISTRATION ACCEPT message contains a 5G-GUTI, the UE shall return a REGISTRATION COMPLETE message to
+    // the AMF to acknowledge the received 5G-GUTI, stop timer T3519 if running, and delete any stored SUCI."
+    if (msg.mobileIdentity.has_value())
+    {
+        if (msg.mobileIdentity->type == nas::EIdentityType::GUTI)
+        {
+            m_storage->storedSuci->clear();
+            m_storage->storedGuti->set(*msg.mobileIdentity);
+            m_timers->t3519.stop();
+            sendComplete = true;
+        }
+        else
+        {
+            m_logger->warn("GUTI was expected in registration accept but another identity type received");
+        }
+    }
+
+    // Process rejected NSSAI
+    if (msg.rejectedNSSAI.has_value())
+    {
+        for (auto &rejectedSlice : msg.rejectedNSSAI->list)
+        {
+            SingleSlice slice{};
+            slice.sst = rejectedSlice.sst;
+            slice.sd = rejectedSlice.sd;
+
+            auto &nssai = rejectedSlice.cause == nas::ERejectedSNssaiCause::NA_IN_PLMN ? m_storage->rejectedNssaiInPlmn
+                                                                                       : m_storage->rejectedNssaiInTa;
+            nssai->mutate([slice](auto &value) { value.addIfNotExists(slice); });
+        }
+    }
+
+    // Process network slicing subscription indication
+    if (msg.networkSlicingIndication.has_value() &&
+        msg.networkSlicingIndication->nssci == nas::ENetworkSlicingSubscriptionChangeIndication::CHANGED)
+    {
+        handleNetworkSlicingSubscriptionChange();
+        sendComplete = true;
+    }
+
+    // Store the allowed NSSAI
+    m_storage->allowedNssai->set(nas::utils::NssaiTo(msg.allowedNSSAI.value_or(nas::IENssai{})));
+
+    // Process configured NSSAI IE
+    if (msg.configuredNSSAI.has_value())
+    {
+        m_storage->configuredNssai->set(nas::utils::NssaiTo(msg.configuredNSSAI.value_or(nas::IENssai{})));
+        sendComplete = true;
+    }
+
+    // Store the network feature support
+    if (msg.networkFeatureSupport)
+    {
+        if (m_nwFeatureSupport)
+        {
+            m_nwFeatureSupport->imsVoPs3gpp = msg.networkFeatureSupport->imsVoPs3gpp;
+            m_nwFeatureSupport->imsVoPsN3gpp = msg.networkFeatureSupport->imsVoPsN3gpp;
+            m_nwFeatureSupport->emc = msg.networkFeatureSupport->emc;
+            m_nwFeatureSupport->emf = msg.networkFeatureSupport->emf;
+            m_nwFeatureSupport->iwkN26 = msg.networkFeatureSupport->iwkN26;
+            m_nwFeatureSupport->mpsi = msg.networkFeatureSupport->mpsi;
+
+            if (msg.networkFeatureSupport->emcn3)
+                m_nwFeatureSupport->emcn3 = msg.networkFeatureSupport->emcn3;
+            if (msg.networkFeatureSupport->mcsi)
+                m_nwFeatureSupport->mcsi = msg.networkFeatureSupport->mcsi;
+        }
+        else
+        {
+            m_nwFeatureSupport = msg.networkFeatureSupport;
+        }
+    }
+
+    // The service request attempt counter shall be reset when registration procedure for mobility and periodic
+    // registration update is successfully completed
+    m_serCounter = 0;
+
+    if (sendComplete)
+        sendNasMessage(nas::RegistrationComplete{});
+
+    auto regType = m_lastRegistrationRequest->registrationType.registrationType;
+    m_logger->info("%s is successful", nas::utils::EnumToString(regType));
+}
+
 void NasMm::receiveRegistrationReject(const nas::RegistrationReject &msg)
 {
     if (m_mmState != EMmState::MM_REGISTERED_INITIATED)
@@ -594,6 +746,7 @@ void NasMm::receiveRegistrationReject(const nas::RegistrationReject &msg)
     m_logger->err("%s failed [%s]", nas::utils::EnumToString(regType), nas::utils::EnumToString(cause));
 
     if (regType == nas::ERegistrationType::INITIAL_REGISTRATION ||
+        //regType == nas::ERegistrationType::PATH_SWITCH_REQUEST ||
         regType == nas::ERegistrationType::EMERGENCY_REGISTRATION)
         receiveInitialRegistrationReject(msg);
     else

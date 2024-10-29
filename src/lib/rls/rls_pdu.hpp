@@ -10,7 +10,7 @@
 
 #include <cstdint>
 #include <memory>
-#include <gnb/types.hpp>
+#include <ue/types.hpp>
 
 #include <utils/common_types.hpp>
 #include <utils/octet_string.hpp>
@@ -36,13 +36,15 @@ enum class EMessageType : uint8_t
     SESSION_TRANSMISSION = 8,
     XN_SESSION_TRANSMISSION = 9,
     RELEASE_SESSION = 10,
+
+
 };
 
 enum class EPduType : uint8_t
 {
     RESERVED = 0,
     RRC,
-    DATA,
+    DATA
 };
 
 struct RlsMessage
@@ -74,6 +76,33 @@ struct RlsHeartBeatAck : RlsMessage
 };
 
 //Urwah
+struct RlsSessionTransmission : RlsMessage
+{
+    EPduType pduType{};
+    uint32_t pduId{};
+    uint32_t payload{};
+    uint32_t amfId {};
+    std::unique_ptr<nr::ue::PduSessionResource> m_pduSession;
+    nas::IEUeSecurityCapability m_ueSecurityCapability;
+
+    explicit RlsSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::SESSION_TRANSMISSION, sti)
+    {
+    }
+};
+struct RlsXnSessionTransmission : RlsMessage
+{
+    EPduType pduType{};
+    uint32_t pduId{};
+    uint32_t payload{};
+    uint32_t amfId{};
+
+    std::unique_ptr<nr::ue::PduSessionResource> m_pduSession;
+
+
+    explicit RlsXnSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::XN_SESSION_TRANSMISSION, sti)
+    {
+    }
+};
 struct RlsTerminateSession : RlsMessage
 {
     uint32_t pduId{};
@@ -85,45 +114,12 @@ struct RlsTerminateSession : RlsMessage
     }
 };
 
-struct RlsSessionTransmission : RlsMessage
-{
-    EPduType pduType{};
-    uint32_t pduId{};
-    uint32_t payload{};
-    uint32_t amfId{};
-
-    std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
-    nas::IEUeSecurityCapability m_ueSecurityCapability;
-
-
-    explicit RlsSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::SESSION_TRANSMISSION, sti)
-    {
-    }
-};
-
-struct RlsXnSessionTransmission : RlsMessage
-{
-    EPduType pduType{};
-    uint32_t pduId{};
-    uint32_t payload{};
-    uint32_t amfId{};
-
-    std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
-
-
-    explicit RlsXnSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::XN_SESSION_TRANSMISSION, sti)
-    {
-    }
-};
-
 struct RlsPduTransmission : RlsMessage
 {
     EPduType pduType{};
     uint32_t pduId{};
     uint32_t payload{};
     OctetString pdu{};
-    //Urwah
-    //std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
 
     explicit RlsPduTransmission(uint64_t sti) : RlsMessage(EMessageType::PDU_TRANSMISSION, sti)
     {

@@ -5,12 +5,14 @@
 // https://github.com/aligungr/UERANSIM/
 // See README, LICENSE, and CONTRIBUTING files for licensing details.
 //
+#include <iostream>
 
 #include "task.hpp"
 
 #include <lib/rrc/encode.hpp>
 #include <ue/nas/task.hpp>
 #include <ue/nts.hpp>
+#include <ue/rls/task.hpp>
 #include <utils/random.hpp>
 
 #include <asn/rrc/ASN_RRC_RRCSetup-IEs.h>
@@ -96,7 +98,7 @@ void UeRrcTask::receiveRrcSetup(int cellId, const ASN_RRC_RRCSetup &msg)
     if (m_lastSetupReq != ERrcLastSetupRequest::SETUP_REQUEST)
     {
         // TODO
-        return;
+        //return;
     }
 
     auto *pdu = asn::New<ASN_RRC_UL_DCCH_Message>();
@@ -154,5 +156,32 @@ void UeRrcTask::handleEstablishmentFailure()
 {
     m_base->nasTask->push(std::make_unique<NmUeRrcToNas>(NmUeRrcToNas::RRC_ESTABLISHMENT_FAILURE));
 }
+
+
+//Urwah
+void UeRrcTask::handoverToTargetCellPreservingContext(int newCellId) {
+    if (hasSignalToCell(newCellId)) {
+
+        ActiveCellInfo lastActiveCell = m_base->shCtx.currentCell.get();
+        m_base->shCtx.currentCell.mutate([&](auto &activeCell) {
+            activeCell.cellId = newCellId;  
+            activeCell.plmn = lastActiveCell.plmn;  
+            activeCell.tac = lastActiveCell.tac; 
+        });
+
+        m_logger->info("Switched to target gNB with cell ID [%d] without changing PLMN/TAI", newCellId);
+        
+        auto w1 = std::make_unique<NmUeRrcToRls>(NmUeRrcToRls::ASSIGN_CURRENT_CELL);
+        w1->cellId = newCellId;
+        m_base->rlsTask->push(std::move(w1));
+
+        m_base->nasTask->push(std::make_unique<NmUeRrcToNas>(NmUeRrcToNas::RRC_CONNECTION_SETUP));
+        m_cellDesc.erase(lastActiveCell.cellId);
+
+    } else {
+        m_logger->err("Failed to switch to target gNB. Cell ID [%d] not detected.", newCellId);
+    }
+}
+
 
 } // namespace nr::ue

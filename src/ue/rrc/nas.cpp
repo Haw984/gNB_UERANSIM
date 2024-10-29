@@ -16,7 +16,8 @@
 #include <asn/rrc/ASN_RRC_DLInformationTransfer.h>
 #include <asn/rrc/ASN_RRC_ULInformationTransfer-IEs.h>
 #include <asn/rrc/ASN_RRC_ULInformationTransfer.h>
-
+//Urwah
+#include <utils/nts.hpp>
 namespace nr::ue
 {
 
