@@ -88,6 +88,11 @@ void NasTask::onLoop()
             sm->handleUplinkDataRequest(w.psi, std::move(w.data));
             break;
         }
+        case NmUeAppToNas::SESSION_SWITCH_REQUEST:
+        {
+            sm->receiveXnHandoverEstablishmentAccept();
+            break;
+        }
         default:
             break;
         }

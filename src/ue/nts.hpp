@@ -20,6 +20,7 @@
 #include <utils/network.hpp>
 #include <utils/nts.hpp>
 #include <utils/octet_string.hpp>
+#include <lib/nas/msg.hpp>
 
 namespace nr::ue
 {
@@ -73,6 +74,8 @@ struct NmUeRrcToNas : NtsMessage
         PAGING,
         ACTIVE_CELL_CHANGED,
         RRC_FALLBACK_INDICATION,
+
+
     } present;
 
     // NAS_DELIVERY
@@ -83,6 +86,10 @@ struct NmUeRrcToNas : NtsMessage
 
     // ACTIVE_CELL_CHANGED
     Tai previousTai;
+    
+    //Urwah
+    //std::unique_ptr<PduSessionResource> m_pduSession;
+
 
     explicit NmUeRrcToNas(PR present) : NtsMessage(NtsMessageType::UE_RRC_TO_NAS), present(present)
     {
@@ -154,7 +161,9 @@ struct NmUeRlsToRrc : NtsMessage
     {
         DOWNLINK_RRC_DELIVERY,
         SIGNAL_CHANGED,
-        RADIO_LINK_FAILURE
+        RADIO_LINK_FAILURE,
+        //Urwah
+        XN_HANDOVER,
     } present;
 
     // DOWNLINK_RRC_DELIVERY
@@ -170,6 +179,9 @@ struct NmUeRlsToRrc : NtsMessage
 
     // RADIO_LINK_FAILURE
     rls::ERlfCause rlfCause{};
+
+    //Urwah
+    int psi;
 
     explicit NmUeRlsToRrc(PR present) : NtsMessage(NtsMessageType::UE_RLS_TO_RRC), present(present)
     {
@@ -197,14 +209,36 @@ struct NmUeNasToApp : NtsMessage
     enum PR
     {
         PERFORM_SWITCH_OFF,
-        DOWNLINK_DATA_DELIVERY
+        DOWNLINK_DATA_DELIVERY,
+        RADIO_LINK_FAILURE
     } present;
 
     // DOWNLINK_DATA_DELIVERY
     int psi{};
     OctetString data;
+    
 
     explicit NmUeNasToApp(PR present) : NtsMessage(NtsMessageType::UE_NAS_TO_APP), present(present)
+    {
+    }
+};
+//Urwah
+struct NmUeRrcToApp : NtsMessage
+{
+    enum PR
+    {
+        SWITCH_REQUEST,
+        
+    } present;
+
+    // DOWNLINK_DATA_DELIVERY
+    int psi{};
+    OctetString data;
+    std::unique_ptr<PduSessionResource> m_pduSession;
+
+    
+
+    explicit NmUeRrcToApp(PR present) : NtsMessage(NtsMessageType::UE_RRC_TO_APP), present(present)
     {
     }
 };
@@ -214,11 +248,16 @@ struct NmUeAppToNas : NtsMessage
     enum PR
     {
         UPLINK_DATA_DELIVERY,
+        //Urwah
+        SESSION_SWITCH_REQUEST,
     } present;
 
     // UPLINK_DATA_DELIVERY
     int psi{};
     OctetString data;
+    //Urwah
+    std::unique_ptr<PduSessionResource> m_pduSession;
+
 
     explicit NmUeAppToNas(PR present) : NtsMessage(NtsMessageType::UE_APP_TO_NAS), present(present)
     {
@@ -229,12 +268,15 @@ struct NmUeNasToRls : NtsMessage
 {
     enum PR
     {
-        DATA_PDU_DELIVERY
+        DATA_PDU_DELIVERY,
+        CHANGE_SESSION
     } present;
 
     // DATA_PDU_DELIVERY
     int psi{};
     OctetString pdu;
+    //Urwah
+    nas::IEUeSecurityCapability ueSecurityCapability;
 
     explicit NmUeNasToRls(PR present) : NtsMessage(NtsMessageType::UE_NAS_TO_RLS), present(present)
     {
@@ -261,7 +303,6 @@ struct NmUeRlsToRls : NtsMessage
 {
     enum PR
     {
-        RECEIVE_RLS_MESSAGE,
         SIGNAL_CHANGED,
         UPLINK_DATA,
         UPLINK_RRC,
@@ -270,6 +311,10 @@ struct NmUeRlsToRls : NtsMessage
         RADIO_LINK_FAILURE,
         TRANSMISSION_FAILURE,
         ASSIGN_CURRENT_CELL,
+        //Urwah
+        ESTABLISH_CONNECTION,
+        RECEIVE_RLS_MESSAGE,
+
     } present;
 
     // RECEIVE_RLS_MESSAGE
@@ -278,7 +323,7 @@ struct NmUeRlsToRls : NtsMessage
     // SIGNAL_CHANGED
     // ASSIGN_CURRENT_CELL
     int cellId{};
-
+    int old_cellId{};
     // RECEIVE_RLS_MESSAGE
     std::unique_ptr<rls::RlsMessage> msg{};
 
@@ -307,6 +352,11 @@ struct NmUeRlsToRls : NtsMessage
 
     // TRANSMISSION_FAILURE
     std::vector<rls::PduInfo> pduList;
+    
+    //Urwah
+    std::unique_ptr<PduSessionResource> m_pduSession;
+
+
 
     explicit NmUeRlsToRls(PR present) : NtsMessage(NtsMessageType::UE_RLS_TO_RLS), present(present)
     {

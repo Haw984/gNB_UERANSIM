@@ -15,6 +15,9 @@
 #include <ue/nas/sm/sm.hpp>
 #include <ue/rrc/task.hpp>
 #include <utils/common.hpp>
+//Urwah's Edition 
+#include <ue/rls/task.hpp>
+
 
 namespace nr::ue
 {
@@ -134,6 +137,7 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
         // "Additionally, the registration attempt counter shall be reset when the UE is in substate
         // 5GMM-DEREGISTERED.ATTEMPTING-REGISTRATION or 5GMM-REGISTERED.ATTEMPTING-REGISTRATION-UPDATE, and a new
         // tracking area is entered"
+
         if (m_mmSubState == EMmSubState::MM_DEREGISTERED_ATTEMPTING_REGISTRATION ||
             m_mmSubState == EMmSubState::MM_REGISTERED_ATTEMPTING_REGISTRATION_UPDATE)
         {
@@ -149,7 +153,6 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
         {
             mobilityUpdatingRequired(ERegUpdateCause::TAI_CHANGE_IN_ATT_UPD);
         }
-
         // "shall initiate an initial registration procedure when the tracking area of the serving cell has changed, if
         // timer T3346 is not running, the PLMN identity of the new cell is not in one of the forbidden PLMN lists and
         // the tracking area of the new cell is not in one of the lists of 5GS forbidden tracking areas"
@@ -171,8 +174,8 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
             currentCell.category == ECellCategory::SUITABLE_CELL)
         {
             mobilityUpdatingRequired(ERegUpdateCause::PLMN_CHANGE_IN_ATT_UPD);
-        }
 
+        }
         // "shall initiate an initial registration procedure when entering a new PLMN, if timer T3346 is running and the
         // new PLMN is not equivalent to the PLMN where the UE started timer T3346, the PLMN identity of the new cell is
         // not in the forbidden PLMN lists and the tracking area is not in one of the lists of 5GS forbidden tracking
@@ -200,6 +203,8 @@ void NasMm::handleActiveCellChange(const Tai &prevTai)
         m_logger->err("Active cell change in [CM-IDLE] state while MM specific procedure is ongoing");
         switchMmState(EMmSubState::MM_DEREGISTERED_PS);
     }
+
+
 }
 
 void NasMm::handleRrcConnectionSetup()
@@ -254,14 +259,10 @@ void NasMm::handleRrcEstablishmentFailure()
 void NasMm::handleRadioLinkFailure()
 {
     // TODO
-
     if (m_cmState == ECmState::CM_CONNECTED)
     {
         m_logger->err("Radio link failure detected");
     }
-
-    handleRrcConnectionRelease();
-
     if (m_mmState == EMmState::MM_REGISTERED)
         switchMmState(EMmSubState::MM_REGISTERED_PS);
     else if (m_mmState == EMmState::MM_DEREGISTERED)

@@ -16,9 +16,10 @@
 #include <lib/udp/server.hpp>
 #include <ue/types.hpp>
 #include <utils/nts.hpp>
-
+#include <ue/app/task.hpp>
 namespace nr::ue
 {
+
 
 class RlsUdpTask : public NtsTask
 {
@@ -40,13 +41,18 @@ class RlsUdpTask : public NtsTask
     std::unordered_map<uint64_t, CellInfo> m_cells;
     std::unordered_map<int, uint64_t> m_cellIdToSti;
     int64_t m_lastLoop;
-    Vector3 m_simPos;
+    std::vector<Vector3> m_simPos;
+    std::string m_mobPattern;
     int m_cellIdCounter;
-
+    int m_simPosIndex;
+    float m_velocity;
     friend class UeCmdHandler;
+    int velocity_in_time;
+    bool m_wifi;
 
   public:
-    explicit RlsUdpTask(TaskBase *base, RlsSharedContext* shCtx, const std::vector<std::string> &searchSpace);
+    explicit RlsUdpTask(TaskBase *base, RlsSharedContext* shCtx, const std::vector<std::string> &searchSpace, 
+    std::vector<Vector3> simPos, const std::string m_mobPattern, const float velocity, const bool wifi);
     ~RlsUdpTask() override = default;
 
   protected:
@@ -59,6 +65,8 @@ class RlsUdpTask : public NtsTask
     void receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::RlsMessage> &&msg);
     void onSignalChangeOrLost(int cellId);
     void heartbeatCycle(uint64_t time, const Vector3 &simPos);
+    void speedTimeCalculation(std::vector<Vector3>& simPos, float velocity);
+    int findCellWithHighestDbm(const std::unordered_map<uint64_t, CellInfo>& m_cells);
 
   public:
     void initialize(NtsTask *ctlTask);
