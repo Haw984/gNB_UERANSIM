@@ -92,6 +92,7 @@ void NasMm::performMmCycle()
 
     auto currentCell = m_base->shCtx.currentCell.get();
     Tai currentTai = Tai{currentCell.plmn, currentCell.tac};
+
     /* Perform substate selection in case of primary substate */
     if (m_mmSubState == EMmSubState::MM_DEREGISTERED_PS)
     {

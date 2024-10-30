@@ -135,6 +135,7 @@ void NasSm::sendEstablishmentRequest(const SessionConfig &config)
 void NasSm::receiveEstablishmentAccept(const nas::PduSessionEstablishmentAccept &msg)
 {
     m_logger->debug("PDU Session Establishment Accept received");
+
     if (!checkPtiAndPsi(msg))
         return;
 
@@ -157,22 +158,20 @@ void NasSm::receiveEstablishmentAccept(const nas::PduSessionEstablishmentAccept 
     pduSession->psState = EPsState::ACTIVE;
     pduSession->authorizedQoSRules = nas::utils::DeepCopyIe(msg.authorizedQoSRules);
     pduSession->sessionAmbr = nas::utils::DeepCopyIe(msg.sessionAmbr);
-
     pduSession->sessionType = msg.selectedPduSessionType.pduSessionType;
+
     if (msg.authorizedQoSFlowDescriptions.has_value())
         pduSession->authorizedQoSFlowDescriptions = nas::utils::DeepCopyIe(*msg.authorizedQoSFlowDescriptions);
     else
         pduSession->authorizedQoSFlowDescriptions = {};
 
     if (msg.pduAddress.has_value())
-    {
         pduSession->pduAddress = nas::utils::DeepCopyIe(*msg.pduAddress);
-    }
     else
-     {   pduSession->pduAddress = {};}
+        pduSession->pduAddress = {};
 
     auto statusUpdate = std::make_unique<NmUeStatusUpdate>(NmUeStatusUpdate::SESSION_ESTABLISHMENT);
-    statusUpdate->pduSession = pduSession;  
+    statusUpdate->pduSession = pduSession;
     m_base->appTask->push(std::move(statusUpdate));
 
     m_logger->info("PDU Session establishment is successful PSI[%d]", pduSession->psi);
@@ -204,11 +203,5 @@ void NasSm::receiveEstablishmentReject(const nas::PduSessionEstablishmentReject 
         // TODO: inform the upper layers of the failure of the procedure
     }
 }
-void NasSm::receiveXnHandoverEstablishmentAccept()
-{
-    m_mm->m_cmState = std::move(ECmState::CM_CONNECTED);
-    return;
-}
-
 
 } // namespace nr::ue

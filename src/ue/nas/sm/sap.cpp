@@ -63,6 +63,7 @@ void NasSm::handleUplinkDataRequest(int psi, OctetString &&data)
     {
         // TODO: We should also check if radio resources are established by RRC.
         //  Checking CM state is not sufficient
+
         if (m_pduSessions[psi]->uplinkPending)
         {
             m_pduSessions[psi]->uplinkPending = false;

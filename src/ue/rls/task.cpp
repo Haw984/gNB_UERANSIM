@@ -7,7 +7,7 @@
 //
 
 #include "task.hpp"
-#include <iostream>
+
 #include <ue/app/task.hpp>
 #include <ue/nas/task.hpp>
 #include <ue/rrc/task.hpp>
@@ -23,8 +23,8 @@ UeRlsTask::UeRlsTask(TaskBase *base) : m_base{base}
 
     m_shCtx = new RlsSharedContext();
     m_shCtx->sti = Random::Mixed(base->config->getNodeName()).nextL();
-    m_udpTask = new RlsUdpTask(base, m_shCtx, base->config->gnbSearchList, base->config->phyLocations, base->config->mobPattern,
-    base->config->velocity, base->config->wifi);
+
+    m_udpTask = new RlsUdpTask(base, m_shCtx, base->config->gnbSearchList);
     m_ctlTask = new RlsControlTask(base, m_shCtx);
 
     m_udpTask->initialize(m_ctlTask);
@@ -75,20 +75,10 @@ void UeRlsTask::onLoop()
             auto m = std::make_unique<NmUeRlsToRrc>(NmUeRlsToRrc::RADIO_LINK_FAILURE);
             m->rlfCause = w.rlfCause;
             m_base->rrcTask->push(std::move(m));
-	        int flag=system("tc qdisc change dev eth1 root netem delay 0ms loss 0%");
-            if(flag){}
-	        break;
+            break;
         }
         case NmUeRlsToRls::TRANSMISSION_FAILURE: {
             m_logger->debug("transmission failure [%d]", w.pduList.size());
-            break;
-        }
-        case NmUeRlsToRls::ESTABLISH_CONNECTION: {
-            m_logger->info("Establishing new Connection. ");
-            auto m = std::make_unique<NmUeRlsToRrc>(NmUeRlsToRrc::XN_HANDOVER);
-            m->cellId = w.cellId;
-            m->psi = w.psi;
-            m_base->rrcTask->push(std::move(m));
             break;
         }
         default: {
@@ -133,10 +123,6 @@ void UeRlsTask::onLoop()
             m->psi = w.psi;
             m->data = std::move(w.pdu);
             m_ctlTask->push(std::move(m));
-            break;
-        }
-        case NmUeNasToRls::CHANGE_SESSION:{
-            m_ueSecurityCapability = std::move(w.ueSecurityCapability);
             break;
         }
         }
