@@ -81,9 +81,6 @@ bool NasMm::hasEmergency()
     if (m_procCtl.mobilityRegistration && m_procCtl.mobilityRegistration == ERegUpdateCause::EMERGENCY_CASE)
         return true;
 
-    if (m_procCtl.pathSwitchRegistration && m_procCtl.pathSwitchRegistration == ERegUpdateCause::EMERGENCY_CASE)
-        return true;
-
     if (m_procCtl.serviceRequest && m_procCtl.serviceRequest == EServiceReqCause::EMERGENCY_FALLBACK)
         return true;
 

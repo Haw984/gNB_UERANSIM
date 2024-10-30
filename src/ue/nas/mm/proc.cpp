@@ -15,6 +15,7 @@
 #include <ue/nas/sm/sm.hpp>
 #include <ue/rrc/task.hpp>
 #include <utils/common.hpp>
+
 namespace nr::ue
 {
 
@@ -88,6 +89,12 @@ void NasMm::serviceRequestRequired(EServiceReqCause cause)
 
 void NasMm::deregistrationRequired(EDeregCause cause)
 {
+    if (m_mmState == EMmState::MM_NULL)
+        return;
+
+    if (m_procCtl.deregistration == cause)
+        return;
+
     m_logger->debug("De-registration required due to [%s]", ToJson(cause).str().c_str());
 
     AssignCause(m_procCtl.deregistration, cause);
@@ -109,6 +116,7 @@ void NasMm::invokeProcedures()
 {
     auto activeCell = m_base->shCtx.currentCell.get();
     bool hasActiveCell = activeCell.hasValue();
+
     if (hasActiveCell && m_procCtl.deregistration)
     {
         EProcRc rc = sendDeregistration(*m_procCtl.deregistration);

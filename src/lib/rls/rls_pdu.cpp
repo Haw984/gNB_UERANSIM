@@ -7,7 +7,6 @@
 //
 
 #include "rls_pdu.hpp"
-
 #include <utils/constants.hpp>
 #include "asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h"
 
@@ -52,13 +51,6 @@ void EncodeRlsMessage(const RlsMessage &msg, OctetString &stream)
             stream.appendOctet4(pduId);
     }
     //Urwah
-    else if (msg.msgType == EMessageType::RELEASE_SESSION)
-    {
-        auto &m = (const RlsTerminateSession &)msg;
-        stream.appendOctet4(m.pduId);
-        stream.appendOctet4(m.psi);
-
-    }
     else if (msg.msgType == EMessageType::SESSION_TRANSMISSION)
     {
         auto &m = (const RlsSessionTransmission &)msg;
@@ -66,6 +58,7 @@ void EncodeRlsMessage(const RlsMessage &msg, OctetString &stream)
         stream.appendOctet4(m.payload);
         stream.appendOctet4(m.amfId);
         auto &qosList = m.m_pduSession->qosFlows->list;
+        
         stream.appendOctet4(static_cast<uint32_t>(m.m_pduSession->ueId)); // Serialize ueId
         stream.appendOctet4(static_cast<uint32_t>(m.m_pduSession->psi));  // Serialize psi
 
@@ -83,18 +76,23 @@ void EncodeRlsMessage(const RlsMessage &msg, OctetString &stream)
         stream.appendOctet4(m.m_pduSession->upTunnel.teid); // Serialize TEID
         stream.appendOctet4(m.m_pduSession->upTunnel.address.length());
         stream.append(m.m_pduSession->upTunnel.address);    // Serialize address
-
+ 
         // Serialize GtpTunnel downTunnel
         stream.appendOctet4(m.m_pduSession->downTunnel.teid); // Serialize TEID
         stream.appendOctet4(m.m_pduSession->downTunnel.address.length());    // Serialize address
         stream.append(m.m_pduSession->downTunnel.address);    // Serialize address
+
         stream.appendOctet4(static_cast<int>(qosList.count)); // Serialize the number of QoS Flows
         for (int iQos = 0; iQos < static_cast<int>(qosList.count); iQos++) {
             stream.appendOctet4(static_cast<int>(qosList.array[iQos]->qosFlowIdentifier)); // Serialize QoS Flow Identifier
         }
-        // Encode the UE Security Capability into the stream
-        nas::IEUeSecurityCapability::Encode(m.m_ueSecurityCapability, stream);
 
+    }   
+    else if (msg.msgType == EMessageType::XN_SESSION_TRANSMISSION)
+    {
+        auto &m = (const RlsXnSessionTransmission &)msg;
+        stream.appendOctet4(m.pduId);
+        stream.appendOctet4(m.payload);
     }   
 }
 
@@ -146,6 +144,14 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
             res->pduIds.push_back(stream.read4UI());
         return res;
     }
+    //Urwah
+    else if (msgType == EMessageType::RELEASE_SESSION)
+    {
+        auto res = std::make_unique<RlsTerminateSession>(sti);
+        res->pduId = stream.read4UI();
+        res->psi = stream.read4UI();
+        return res;
+    }
     else if (msgType == EMessageType::SESSION_TRANSMISSION)
     {
         auto res = std::make_unique<RlsSessionTransmission>(sti);
@@ -156,8 +162,8 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
         int ueId = stream.read4UI();
         int psi = stream.read4UI();
 
-        res->m_pduSession = std::make_unique<nr::ue::PduSessionResource>(ueId, psi);
 
+        res->m_pduSession = std::make_unique<nr::gnb::PduSessionResource>(ueId, psi);
         // Read AggregateMaximumBitRate
         res->m_pduSession->sessionAmbr.dlAmbr = stream.read8UL();
         res->m_pduSession->sessionAmbr.ulAmbr = stream.read8UL();
@@ -173,33 +179,24 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
         // Read GtpTunnel downTunnel
         res->m_pduSession->downTunnel.teid = stream.read4UI();
         res->m_pduSession->downTunnel.address = stream.readOctetString(stream.read4I());
-
         // Read QoS Flows
         int qosFlowCount = stream.read4I();
-
-        // Allocate space for qosFlows
+        // Use the asn::Unique constructor to convert the raw pointer returned by asn::New into a unique_ptr
         asn::Unique<ASN_NGAP_QosFlowSetupRequestList> newQosFlows(asn::New<ASN_NGAP_QosFlowSetupRequestList>());
+
+        // Assign the newQosFlows to m.m_pduSession->qosFlows using std::move
         res->m_pduSession->qosFlows = std::move(newQosFlows);
         res->m_pduSession->qosFlows->list.array = new ASN_NGAP_QosFlowSetupRequestItem*[qosFlowCount];
-
-        for (int iQos = 0; iQos < qosFlowCount; iQos++) {
-            res->m_pduSession->qosFlows->list.array[iQos] = new ASN_NGAP_QosFlowSetupRequestItem();
+        res->m_pduSession->qosFlows->list.array[0] = new ASN_NGAP_QosFlowSetupRequestItem();
+        for (int iQos = 0; iQos < static_cast<int>(qosFlowCount); iQos++) {
+            // Store the raw pointer in the array
             res->m_pduSession->qosFlows->list.array[iQos]->qosFlowIdentifier = stream.read4I();
         }
         res->m_pduSession->qosFlows->list.count = qosFlowCount;
 
+        nas::IEUeSecurityCapability ueSecCap = nas::IEUeSecurityCapability::Decode( stream, 4);
+        res->m_ueSecurityCapability = std::move(ueSecCap);
         return res;
-
-    }
-    else if (msgType == EMessageType::XN_SESSION_TRANSMISSION)
-    {
-        auto res = std::make_unique<RlsXnSessionTransmission>(sti);
-
-        res->pduId = stream.read4UI();
-        res->payload = stream.read4UI();
-
-        return res;
-
     }
 
     return nullptr;

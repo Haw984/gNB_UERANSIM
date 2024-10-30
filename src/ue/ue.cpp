@@ -12,7 +12,7 @@
 #include "nas/task.hpp"
 #include "rls/task.hpp"
 #include "rrc/task.hpp"
-#include <iostream>
+
 namespace nr::ue
 {
 
@@ -26,12 +26,12 @@ UserEquipment::UserEquipment(UeConfig *config, app::IUeController *ueController,
     base->ueController = ueController;
     base->nodeListener = nodeListener;
     base->cliCallbackTask = cliCallbackTask;
-    UserEquipment::wifiAP = base->config->wifi;
 
     base->nasTask = new NasTask(base);
     base->rrcTask = new UeRrcTask(base);
     base->appTask = new UeAppTask(base);
     base->rlsTask = new UeRlsTask(base);
+
     taskBase = base;
 }
 
@@ -54,19 +54,10 @@ UserEquipment::~UserEquipment()
 
 void UserEquipment::start()
 {
-    if(!UserEquipment::wifiAP)
-    {
-    	taskBase->nasTask->start();
-    	taskBase->rrcTask->start();
-    	taskBase->rlsTask->start();
-    	taskBase->appTask->start();
-    }
-    else
-    {
-    	std::cout<<"WIFI AP RUNNING"<<std::endl;
-	taskBase->rlsTask->start();
-	taskBase->appTask->start();
-    }
+    taskBase->nasTask->start();
+    taskBase->rrcTask->start();
+    taskBase->rlsTask->start();
+    taskBase->appTask->start();
 }
 
 void UserEquipment::pushCommand(std::unique_ptr<app::UeCliCommand> cmd, const InetAddress &address)

@@ -31,9 +31,6 @@ class RlsControlTask : public NtsTask
     RlsUdpTask *m_udpTask;
     std::unordered_map<uint32_t, rls::PduInfo> m_pduMap;
     std::unordered_map<int, std::vector<uint32_t>> m_pendingAck;
-    std::unique_ptr<nr::ue::PduSessionResource> m_switchSession;
-    int oldCell;
-    int oldUeId;
 
   public:
     explicit RlsControlTask(TaskBase *base, RlsSharedContext *shCtx);

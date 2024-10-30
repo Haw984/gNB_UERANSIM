@@ -37,6 +37,7 @@ class NasMm
     NasSm *m_sm;
     Usim *m_usim;
     MmStorage *m_storage;
+
     ERmState m_rmState;
     ECmState m_cmState;
     EMmState m_mmState;
@@ -115,11 +116,9 @@ class NasMm
     void receiveRegistrationAccept(const nas::RegistrationAccept &msg);
     void receiveInitialRegistrationAccept(const nas::RegistrationAccept &msg);
     void receiveMobilityRegistrationAccept(const nas::RegistrationAccept &msg);
-    void receivePathSwitchRegistrationAccept(const nas::RegistrationAccept &msg);
     void receiveRegistrationReject(const nas::RegistrationReject &msg);
     void receiveInitialRegistrationReject(const nas::RegistrationReject &msg);
     void receiveMobilityRegistrationReject(const nas::RegistrationReject &msg);
-    void receivePathSwitchRegistrationReject(const nas::RegistrationReject &msg);
     void handleAbnormalInitialRegFailure(nas::ERegistrationType regType);
     void handleAbnormalMobilityRegFailure(nas::ERegistrationType regType);
     void resetRegAttemptCounter();
