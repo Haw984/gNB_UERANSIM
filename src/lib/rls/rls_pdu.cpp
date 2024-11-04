@@ -51,6 +51,13 @@ void EncodeRlsMessage(const RlsMessage &msg, OctetString &stream)
             stream.appendOctet4(pduId);
     }
     //Urwah
+    else if (msg.msgType == EMessageType::RELEASE_SESSION)
+    {
+        auto &m = (const RlsTerminateSession &)msg;
+        stream.appendOctet4(m.pduId);
+        stream.appendOctet4(m.psi);
+
+    }
     else if (msg.msgType == EMessageType::SESSION_TRANSMISSION)
     {
         auto &m = (const RlsSessionTransmission &)msg;
@@ -202,6 +209,16 @@ std::unique_ptr<RlsMessage> DecodeRlsMessage(const OctetView &stream)
         nas::IEUeSecurityCapability ueSecCap = nas::IEUeSecurityCapability::Decode( stream, 4);
         res->m_ueSecurityCapability = std::move(ueSecCap);
         return res;
+    }
+    else if (msgType == EMessageType::XN_SESSION_TRANSMISSION)
+    {
+        auto res = std::make_unique<RlsXnSessionTransmission>(sti);
+
+        res->pduId = stream.read4UI();
+        res->payload = stream.read4UI();
+
+        return res;
+
     }
 
     return nullptr;
