@@ -131,6 +131,9 @@ class UeRrcTask : public NtsTask
     void receiveRrcReject(int cellId, const ASN_RRC_RRCReject &msg);
     void receiveRrcRelease(const ASN_RRC_RRCRelease &msg);
 
+    //Urwah
+    void handoverToTargetCellPreservingContext(int newCellId);
+
     /* Failures */
     void declareRadioLinkFailure(rls::ERlfCause cause);
     void handleRadioLinkFailure(rls::ERlfCause cause);

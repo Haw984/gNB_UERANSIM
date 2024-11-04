@@ -21,12 +21,14 @@
 #include <lib/app/monitor.hpp>
 #include <lib/app/ue_ctl.hpp>
 #include <lib/nas/nas.hpp>
+#include <lib/asn/utils.hpp>
 #include <utils/common_types.hpp>
 #include <utils/json.hpp>
 #include <utils/locked.hpp>
 #include <utils/logger.hpp>
 #include <utils/nts.hpp>
 #include <utils/octet_string.hpp>
+#include <asn/ngap/ASN_NGAP_QosFlowSetupRequestList.h>
 
 namespace nr::ue
 {
@@ -111,7 +113,13 @@ struct UeConfig
     NetworkSlice defaultConfiguredNssai{};
     NetworkSlice configuredNssai{};
     std::optional<std::string> tunName{};
-
+    //**My Edition**//
+    std::vector<Vector3> phyLocations{};
+    float velocity;
+    bool wifi;
+    std::string staticIP{};
+    std::string interface{};
+    std::string mobPattern{};
     struct
     {
         bool mps{};
@@ -131,6 +139,7 @@ struct UeConfig
     /* Assigned by program */
     bool configureRouting{};
     bool prefixLogger{};
+
 
     [[nodiscard]] std::string getNodeName() const
     {
@@ -596,6 +605,8 @@ struct ProcControl
 {
     std::optional<EInitialRegCause> initialRegistration{};
     std::optional<ERegUpdateCause> mobilityRegistration{};
+    std::optional<ERegUpdateCause> pathSwitchRegistration{};
+    //std::optional<EInitialRegCause> pathSwitchRegistration{};
     std::optional<EServiceReqCause> serviceRequest{};
     std::optional<EDeregCause> deregistration{};
 };
@@ -653,5 +664,36 @@ Json ToJson(const ERegUpdateCause &v);
 Json ToJson(const EPsState &v);
 Json ToJson(const EServiceReqCause &v);
 Json ToJson(const ERrcState &v);
+
+//Urwah
+
+struct AggregateMaximumBitRate
+{
+    uint64_t dlAmbr{};
+    uint64_t ulAmbr{};
+};
+
+struct GtpTunnel
+{
+    uint32_t teid{};
+    OctetString address{};
+};
+
+struct PduSessionResource
+{
+    const int ueId;
+    const int psi;
+
+    AggregateMaximumBitRate sessionAmbr{};
+    bool dataForwardingNotPossible{};
+    PduSessionType sessionType = PduSessionType::UNSTRUCTURED;
+    GtpTunnel upTunnel{};
+    GtpTunnel downTunnel{};
+    asn::Unique<ASN_NGAP_QosFlowSetupRequestList> qosFlows{};
+
+    PduSessionResource(const int ueId, const int psi) : ueId(ueId), psi(psi)
+    {
+    }
+};
 
 } // namespace nr::ue

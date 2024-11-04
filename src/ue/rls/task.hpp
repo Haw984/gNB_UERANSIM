@@ -31,6 +31,7 @@ namespace nr::ue
 class UeRlsTask : public NtsTask
 {
   private:
+    bool radio_link_failed;
     TaskBase *m_base;
     std::unique_ptr<Logger> m_logger;
 
