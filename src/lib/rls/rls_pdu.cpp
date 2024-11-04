@@ -86,6 +86,11 @@ void EncodeRlsMessage(const RlsMessage &msg, OctetString &stream)
         for (int iQos = 0; iQos < static_cast<int>(qosList.count); iQos++) {
             stream.appendOctet4(static_cast<int>(qosList.array[iQos]->qosFlowIdentifier)); // Serialize QoS Flow Identifier
         }
+        if (m.check)
+        {
+            // Encode the UE Security Capability into the stream
+            nas::IEUeSecurityCapability::Encode(m.m_ueSecurityCapability, stream);
+        }
 
     }   
     else if (msg.msgType == EMessageType::XN_SESSION_TRANSMISSION)
