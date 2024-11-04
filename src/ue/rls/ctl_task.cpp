@@ -7,6 +7,8 @@
 //
 
 #include "ctl_task.hpp"
+#include "asn/ngap/ASN_NGAP_QosFlowSetupRequestItem.h"
+#include <asn/ngap/ASN_NGAP_AssociatedQosFlowItem.h>
 
 #include <utils/common.hpp>
 
@@ -56,6 +58,10 @@ void RlsControlTask::onLoop()
             handleSignalChange(w.cellId, w.dbm);
             break;
         case NmUeRlsToRls::RECEIVE_RLS_MESSAGE:
+            if (w.msg->msgType == rls::EMessageType::SESSION_TRANSMISSION)
+            {
+                oldCell = w.old_cellId;
+            }
             handleRlsMessage(w.cellId, *w.msg);
             break;
         case NmUeRlsToRls::UPLINK_DATA:
@@ -138,6 +144,36 @@ void RlsControlTask::handleRlsMessage(int cellId, rls::RlsMessage &msg)
             m_logger->err("Unhandled RLS PDU type");
         }
     }
+    else if (msg.msgType == rls::EMessageType::SESSION_TRANSMISSION)
+    {
+        if (oldCell != cellId)
+        {
+            m_logger->info("Handover Request Received.");
+            auto &m = (rls::RlsSessionTransmission &)msg;
+            rls::RlsSessionTransmission msg{m_shCtx->sti};
+            msg.payload = static_cast<uint32_t>(m.payload);
+            msg.pduId = m.pduId;
+            oldUeId = m.pduId;
+            msg.amfId = m.amfId;
+            msg.m_pduSession = std::move(m.m_pduSession);
+            msg.m_ueSecurityCapability = std::move(m_ueSecurityCapability);
+            msg.check = true;
+            m_udpTask->send(cellId, msg);
+        }
+    }
+    else if (msg.msgType == rls::EMessageType::XN_SESSION_TRANSMISSION)
+    {
+        auto &m = (rls::RlsXnSessionTransmission &)msg;
+        rls::RlsTerminateSession msg{m_shCtx->sti};
+        msg.pduId = oldUeId;
+        msg.psi = m.payload;
+        m_udpTask->send(oldCell, msg);
+
+        auto w = std::make_unique<NmUeRlsToRls>(NmUeRlsToRls::ESTABLISH_CONNECTION);
+        w->psi = m.payload;
+        w->cellId = cellId;
+        m_mainTask->push(std::move(w));
+    }
     else
     {
         m_logger->err("Unhandled RLS message type");
@@ -199,7 +235,6 @@ void RlsControlTask::handleUplinkDataDelivery(int psi, OctetString &&data)
     msg.pdu = std::move(data);
     msg.payload = static_cast<uint32_t>(psi);
     msg.pduId = 0;
-
     m_udpTask->send(m_servingCell, msg);
 }
 

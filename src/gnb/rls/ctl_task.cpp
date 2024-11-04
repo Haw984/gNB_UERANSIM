@@ -255,6 +255,7 @@ void RlsControlTask::handleDownlinkSessionDelivery(int ueId, int psi, int amfId,
     msg.payload = static_cast<uint32_t>(psi);
     msg.pduId = static_cast<uint32_t>(ueId);
     msg.amfId = static_cast<uint32_t>(amfId);
+    msg.check = false;
     m_udpTask->send(ueId, msg);
 }
 

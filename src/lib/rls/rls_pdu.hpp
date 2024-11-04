@@ -94,7 +94,7 @@ struct RlsSessionTransmission : RlsMessage
 
     std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
     nas::IEUeSecurityCapability m_ueSecurityCapability;
-
+    bool check;
 
     explicit RlsSessionTransmission(uint64_t sti) : RlsMessage(EMessageType::SESSION_TRANSMISSION, sti)
     {
@@ -122,8 +122,6 @@ struct RlsPduTransmission : RlsMessage
     uint32_t pduId{};
     uint32_t payload{};
     OctetString pdu{};
-    //Urwah
-    //std::unique_ptr<nr::gnb::PduSessionResource> m_pduSession;
 
     explicit RlsPduTransmission(uint64_t sti) : RlsMessage(EMessageType::PDU_TRANSMISSION, sti)
     {

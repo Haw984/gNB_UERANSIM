@@ -21,6 +21,7 @@ class UserEquipment
 {
   private:
     TaskBase *taskBase;
+    bool wifiAP;
 
   public:
     UserEquipment(UeConfig *config, app::IUeController *ueController, app::INodeListener *nodeListener,
