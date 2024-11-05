@@ -19,6 +19,10 @@
 #include <queue>
 #include <thread>
 #include <vector>
+#include <lib/nas/msg.hpp>
+
+// Urwah's Edition
+extern int msgCheck;
 
 enum class NtsMessageType
 {
@@ -65,6 +69,7 @@ enum class NtsMessageType
     UE_RLS_TO_RLS,
     UE_NAS_TO_APP,
     UE_NAS_TO_RLS,
+    UE_RRC_TO_APP,
 };
 
 struct NtsMessage
@@ -132,6 +137,18 @@ class NtsTask
 
   public:
     NtsTask() = default;
+    //Urwah
+    static nas::IEUeSecurityCapability m_ueSecurityCapability;
+    static bool connectionEstablished;
+    static std::string state;
+    static bool establishConnection;
+
+    static int counter;
+    struct wifiAp {
+        std::vector<std::string> ipv4address;
+        std::vector<int> dbmWifi;
+        std::vector<std::string> additionalInfo;
+    }; static wifiAp apSelection;
     static bool flag;
     struct infoList{
       std::vector<int> ueIdList;

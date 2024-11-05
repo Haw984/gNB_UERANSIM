@@ -245,7 +245,52 @@ static nr::ue::UeConfig *ReadConfigYaml()
         result->uacAcc.cls14 = yaml::GetBool(config["uacAcc"], "class14");
         result->uacAcc.cls15 = yaml::GetBool(config["uacAcc"], "class15");
     }
+    if (yaml::HasField(config, "phyLocation")) 
+    {
+    const auto& phyLocation = config["phyLocation"];
 
+    const auto& xValues = phyLocation["x"];
+    const auto& yValues = phyLocation["y"];
+    const auto& zValues = phyLocation["z"];
+
+    // Assuming all arrays have the same size
+    size_t size = xValues.size();
+    for (size_t i = 0; i < size; ++i) 
+    {
+        int x = xValues[i].as<int>();
+        int y = yValues[i].as<int>();
+        int z = zValues[i].as<int>();
+
+        // Check if x, y, and z are valid integer values
+        if (xValues[i].IsScalar() && yValues[i].IsScalar() && zValues[i].IsScalar()) 
+        {
+            // Construct Vector3 object only if all values are integers
+            result->phyLocations.push_back(Vector3(x, y, z));
+        }
+    }
+    }
+    if (yaml::HasField(config, "phyLocation"))
+    {
+        result->mobPattern = yaml::GetString(config,"pattern");
+    }
+
+    if (yaml::HasField(config, "velocity"))
+    {
+        result->velocity=config["velocity"].as<float>();
+    }
+
+    if (yaml::HasField(config, "wifi"))
+    {
+	    result->wifi=config["wifi"].as<bool>();
+    }
+    if (yaml::HasField(config, "wifi"))
+    {
+        if (result->wifi)
+        {
+            result->staticIP = yaml::GetString(config,"staticIP");
+            result->interface = yaml::GetString(config,"Interface");
+        }
+    }
     return result;
 }
 
@@ -371,7 +416,12 @@ static nr::ue::UeConfig *GetConfigByUe(int ueIndex)
     c->integrityMaxRate = g_refConfig->integrityMaxRate;
     c->uacAic = g_refConfig->uacAic;
     c->uacAcc = g_refConfig->uacAcc;
-
+    c->phyLocations = g_refConfig->phyLocations;
+    c->mobPattern = g_refConfig->mobPattern;
+    c->velocity = g_refConfig->velocity;
+    c->wifi = g_refConfig->wifi;
+    c->staticIP = g_refConfig->staticIP;
+    c->interface = g_refConfig->interface;
     if (c->supi.has_value())
         IncrementNumber(c->supi->value, ueIndex);
     if (c->imei.has_value())
