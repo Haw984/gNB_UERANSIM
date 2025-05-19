@@ -155,6 +155,11 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
                     status = route("iptables -D FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j ACCEPT");
                     status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface+ " -s ", ipv4Address, " -j DROP");
                     status = route("iptables -A FORWARD ","-i "+ m_ueInterface + " -o "+ m_interface+ " -s ", ipv4Address, " -j DROP");
+            	    // Remove NAT rule
+                    std::string removeNAT = "iptables -t nat -D POSTROUTING -o " + m_interface + " -j MASQUERADE";
+                    int stat = system(removeNAT.c_str());
+                    if (stat != 0) std::cerr << "Failed to remove NAT on " << m_interface << "\n";
+
                     if (status == 0){
                     m_logger->info("Weak signal power.");
                     m_logger->info("Wifi connection removed.");}
@@ -201,6 +206,13 @@ void RlsUdpTask::receiveRlsPdu(const InetAddress &addr, std::unique_ptr<rls::Rls
                     }
                     else
                     {
+			bool enableNAT= true;
+			if (enableNAT) {
+    				std::string natCmd = "iptables -t nat -A POSTROUTING -o " + m_interface + " -j MASQUERADE";
+    				int stat = system(natCmd.c_str());
+    				if (stat != 0) std::cerr << "Failed to apply NAT on " << m_interface << "\n";
+			}
+
                         m_logger->info("Wifi request received.");
                         int status = system(" iptables -F");
                         status = route("iptables -A FORWARD ","-i "+ m_interface + " -o "+ m_ueInterface + " -s ", ipv4Address, " -j ACCEPT");
